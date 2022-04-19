@@ -50,8 +50,8 @@ Faraday = Faraday(:,FarsUsed);
 Nfar = size(Faraday,2);
 Ndet = Nfar + 1;
 Nsamptot = length(Axial);
-Nblock = length(unique(Block))-1;
-Nblock = 1 %length(unique(Block))-1;
+Nblock = max(1,length(unique(Block))-1);
+%Nblock = 1; %length(unique(Block))-1;
 for mm=1:Nblock
     Ncycle(mm) = length(unique(Cycle(Block==mm)));
 end

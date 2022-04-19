@@ -1,11 +1,41 @@
 clear
 
+addpath(genpath('./matcodes'))
+
+
 %% Define input dataset and collector parameters
 
-% Dataset index number
-iset = 3; 
+%runname = 'test_prop';
+runname = 'RealData22';
 
-runname = 'test_prop';
+if strcmp(runname,'test_prop')
+    iset = 1; % Dataset index number
+    Isotopes = [206 208]';
+    Iso_Name = {'Pb206','Pb208'};
+    
+    % Faraday Index (row # corresponds to isotope measured on Daly
+    % This is based on the setup of the collectors, the piece of
+    % information lacking in the typical data files.
+    F_ind = [0 0 0 0 0    2 0 0 0 ;...
+        0 0 0 0 1    0 0 0 0 ];
+    
+elseif strcmp(runname,'RealData22')
+    iset = 1; % Dataset index number
+    Isotopes = [204 205 206 207 208]';
+    Iso_Name = {'Pb204','Pb205','Pb206','Pb207','Pb208'};
+    
+    % Faraday Index (row # corresponds to isotope measured on Daly
+    % This is based on the setup of the collectors, the piece of
+    % information lacking in the typical data files.
+    F_ind = [0 0 0 0 0    2 3 4 5;...
+         0 0 0 0 1    3 4 5 0;...
+         0 0 0 1 2    4 5 0 0;...
+         0 0 1 2 3    5 0 0 0;...
+         0 1 2 3 4    0 0 0 0];
+end
+
+
+
 foldername = ['./results/' runname];
 
 outfolder = ['./results/' runname '/output/'];
@@ -14,30 +44,8 @@ if ~exist(outfolder,'dir')
 end
 
 
-datafile = sprintf( '%s/data/SyntheticDataset_%02d.txt',foldername,5);
-datamat  = sprintf( '%s/data/SyntheticDataset_%02d.mat',foldername,5);
-
-% Atomic number of isotopes
-Isotopes = [206 208]';
-%Isotopes = [204 205 206 207 208]';
-
-% Isotope names
-Iso_Name = {'Pb206','Pb208'};
-%Iso_Name = {'Pb204','Pb205','Pb206','Pb207','Pb208'};
-
-
-% Faraday Index (row # corresponds to isotope measured on Daly
-% This is based on the setup of the collectors, the piece of
-% information lacking in the typical data files.
-F_ind = [0 0 0 0 0    2 0 0 0 ;...
-         0 0 0 0 1    0 0 0 0 ];
-
-% For 5-isotope test
-% F_ind = [0 0 0 0 0    2 3 4 5;...
-%          0 0 0 0 1    3 4 5 0;...
-%          0 0 0 1 2    4 5 0 0;...
-%          0 0 1 2 3    5 0 0 0;...
-%          0 1 2 3 4    0 0 0 0];
+datafile = sprintf( '%s/data/SyntheticDataset_%02d.txt',foldername,iset);
+datamat  = sprintf( '%s/data/SyntheticDataset_%02d.mat',foldername,iset);
 
 
 
@@ -54,8 +62,8 @@ InterpMat = d0.InterpMat;
 [x0,d,Intensity] = InitializeModel_synth(d0);
 
 % Hardcode values for some test I did
-x0.BL = [3e4; -1e4];
-x0.DFgain = 0.9;
+%x0.BL = [3e4; -1e4];
+%x0.DFgain = 0.9;
 
 
 %% INVERSION WITH rj-MCMC
@@ -63,11 +71,11 @@ x0.DFgain = 0.9;
 
 
 % MCMC Parameters
-maxcnt = 20000;  % Maximum number of models to save
+maxcnt = 2000;  % Maximum number of models to save
 hier = 1;  % Hierachical?
 datsav=100;  % Save model every this many steps
 
-burn = 1000;  % Burn-in, start doing stats after this many saved models
+burn = 10;  % Burn-in, start doing stats after this many saved models
 
 temp=1; % Unused parameter for parallel tempering algorithm
 
@@ -414,9 +422,11 @@ ensname = sprintf('%s/Ensemble_run%02d.mat',outfolder,iset);
 save(ensname,'ensemble','d0','datafile','Isotopes','Iso_Name','prior',...
     'psig','maxcnt','datsav','burn','cnt','F_ind','*mean','*std','InterpMat','x')
 
-
-PlotEnsemble_synth
-%PlotEnsemble_MS
+if strcmp(runname,'test_prop')
+    PlotEnsemble_synth   
+elseif strcmp(runname,'RealData22')
+    PlotEnsemble_MS
+end
 
 PlotProgress_MS
 
