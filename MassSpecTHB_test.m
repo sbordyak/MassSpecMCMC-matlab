@@ -1,4 +1,5 @@
 clear
+addpath("matcodes/");
 
 %% Define input dataset and collector parameters
 
