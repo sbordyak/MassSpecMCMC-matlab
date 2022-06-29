@@ -109,7 +109,7 @@ iTknots0 =  [iminCT imaxCT(:,end)];
 
 for m=1:Nblock
     Block_Time{m} = Time(iTknots0(m,1):iTknots0(m,end));
-    InterpMat{m} = interp1(Tknots0(m,:),eye(length(Tknots0(m,:))),Block_Time{m},'linear');
+    InterpMat{m} = interp1(Tknots0(m,:),eye(length(Tknots0(m,:))),Block_Time{m},'spline');
     
     Nknots(m) = length(Tknots0(m,:));
     Ntb(m) = length(Block_Time{m});

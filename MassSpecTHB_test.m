@@ -5,8 +5,8 @@ addpath(genpath('./matcodes'))
 
 %% Define input dataset and collector parameters
 
-%runname = 'test_prop';
-runname = 'RealData22';
+runname = 'test_prop';
+%runname = 'RealData22';
 
 if strcmp(runname,'test_prop')
     iset = 1; % Dataset index number
@@ -75,7 +75,7 @@ maxcnt = 2000;  % Maximum number of models to save
 hier = 1;  % Hierachical?
 datsav=100;  % Save model every this many steps
 
-burn = 10;  % Burn-in, start doing stats after this many saved models
+burn = 100;  % Burn-in, start doing stats after this many saved models
 
 temp=1; % Unused parameter for parallel tempering algorithm
 
@@ -381,7 +381,7 @@ end  % End of MCMC iterations
 
 %% Analysis and Plotting
 
-burn = 1000; % Number of models to discard
+%burn = 10; % Number of models to discard
 ens_rat =[ensemble.lograt];
 ens_sig =[ensemble.sig];
 ens_DF =[ensemble.DFgain];
@@ -399,7 +399,7 @@ for m=1:d0.Nblock
 end
 
 
-
+%%
 % Calculate mean and st dev of ratios after burn in time
 ratmean = mean(ens_rat(:,burn:cnt),2);  % Log ratios
 ratstd = std(ens_rat(:,burn:cnt),[],2);
