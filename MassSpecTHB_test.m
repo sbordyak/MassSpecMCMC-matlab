@@ -1,4 +1,5 @@
 clear
+addpath("matcodes/");
 
 addpath(genpath('./matcodes'))
 
