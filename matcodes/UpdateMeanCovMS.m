@@ -1,5 +1,4 @@
-function [xmean,xcov] = UpdateMeanCovMS(x,xcov,xmean,ensemble,m,iterflag)
-
+function [xmean,xcov] = UpdateMeanCovMS(x,xmean,xcov,m)
 
 
 Niso = length(x.lograt);
@@ -13,56 +12,32 @@ Ndf = 1;
 Nmod = Niso + sum(Ncycle) + Nfar + Ndf;
 
 
-if iterflag
-    
-    
-    xx = x.lograt;
-    
-    for ii=1:Nblock
-        xx = [xx; x.I{ii}];
-    end
-    
-    xx = [xx; x.BL(1:Nfar)];
-    
-    xx = [xx; x.DFgain];
-    
-    
-    
-    xmean = (xmean*(m-1) + xx)/m;
-    
-    
-    xctmp = (xx-xmean)*(xx-xmean)';
-    xctmp = (xctmp+xctmp')/2;
-    
-    
-    xcov = (xcov*(m-1) + (m-1)/m*xctmp)/m;
-    
-    
+xx = x.lograt;
+for ii=1:Nblock
+    xx = [xx; x.I{ii}];
 end
+xx = [xx; x.BL(1:Nfar)];
+xx = [xx; x.DFgain];
+
+xmeantmp = xmean;
+xmean = xmeantmp + (xx-xmeantmp)/m;
+
+%xmean = (xmean*(m-1) + xx)/m;
+
+%xctmp = (xx-xmean)*(xx-xmean)';
+%xctmp = (xctmp+xctmp')/2;
 
 
+%xcov = (xcov*(m-1) + (m-1)/m*xctmp)/m;
+
+xcov = xcov*(m-1)/m + (m-1)/m^2*(xx-xmean)*(xx-xmeantmp)';
+
+    
+    
 
 
-if ~iterflag
-    
-    cnt = length(ensemble);
-    
-    enso = [ensemble.lograt];
-    
-    for ii = 1:Nblock
-        for n = 1:cnt;
-            ens_I{ii}(:,n) =[ensemble(n).I{ii}];
-        end
-        enso = [enso; ens_I{ii}];
-        
-    end
-    enso = [enso; [ensemble.BL]];
-    enso = [enso; [ensemble.DFgain]];
-    
-    %xcov = cov(enso(:,ceil(end/2):end)');
-    xmean = mean(enso(:,m:end)');
-    xcov = cov(enso(:,m:end)');
-    
-    
-    
-end
+% 
+%         xmeantmp = xmean;
+%         xmean = xmeantmp + (x-xmeantmp)/(cnt);
+%         xcov = xcov*(cnt)/(cnt+1) + (cnt)/(cnt+1)^2*(x-xmean)'*(x-xmeantmp);
+%         mxa(ii,:)=xmean;

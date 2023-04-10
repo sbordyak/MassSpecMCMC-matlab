@@ -80,10 +80,8 @@ datsav = 10;  % Save model every this many steps
 
 burn = 1;  % Burn-in, start doing stats after this many saved models
 
-temp=1; % Use tempering?
-Ntemp = 10000; % Cool search over this number of steps
-% Create tempering vector - start high, cool down to 1 then stay there
-TT = ones(maxcnt*datsav,1);TT(1:Ntemp) = linspace(5,1,Ntemp)';
+temp=1; % Unused parameter for parallel tempering algorithm
+tempering = ones(mxcnt*datsav);tempering(1:Ntemp) = linspace(10,1,Ntemp)';
 
 
 % Baseline multiplier - weight Daly more strongly (I think)
@@ -134,8 +132,8 @@ beta = 0.05;
 alpha=0.025; % Confidence interval we want to be accurate (0.05 = 95% CI)
 epsilon=0.025; % Relative confidence in mean compared to std dev estimator(?)
 EffectSamp = 2^(2/Nmod)*pi/(Nmod*gamma(Nmod/2))^(2/Nmod)*chi2inv(1-alpha,Nmod)/epsilon^2;
-Mchain = 1; % Number of Chains
-ExitCrit = sqrt(1+Mchain/EffectSamp); % Exit when G-R criterium less than this
+Mchain = 1;
+ExitCrit = sqrt(1+Mchain/EffectSamp);
 
 
 % Index for data covariance term (change if multiple types of data)
@@ -194,7 +192,7 @@ restmp = (d0.data-d).^2;
 
 
 % Calculate error function
-E=sum(restmp.*blmult./Dsig/TT(1));  % Weighted by noise variance (for acceptance)
+E=sum(restmp.*blmult./Dsig);  % Weighted by noise variance (for acceptance)
 E0=sum(restmp);  % Unweighted (for tracking convergence)
 
 
@@ -250,17 +248,16 @@ for m = 1:maxcnt*datsav
     allflag = 1;
     temp = 1;
     
-    if m<=2*Nmod   % Use initial covariance until 2*N
+    if m<=Nmod %cnt<100000 
         C = C0; 
-    else % After that begin updating based on model covariance 
-        
-        % Next proposal based initial variance and iterative covariance
+    else
         C = beta*C0 + (1-beta)*2.38^2*Nmod^-1*xcov;   
-        C=(C'+C)/2; % Make sure it's symmetrical
+        C=(C'+C)/2;
     end
     
-    % Draw random numbers based on covariance for next proposal
+    % Draw random numbers based on covariance for next update
     delx_adapt = mvnrnd(zeros(Nmod,1),C)';
+    
     
     
     % Update model and save proposed update values (delx)
@@ -305,8 +302,8 @@ for m = 1:maxcnt*datsav
         dE=E2-E; % Change in misfit
     else                     
         % If any other model update
-        E=sum(restmp.*blmult./Dsig/TT(m));
-        E2=sum(restmp2.*blmult./Dsig2/TT(m));
+        E=sum(restmp.*blmult./Dsig);
+        E2=sum(restmp2.*blmult./Dsig2);
         dE=temp^-1*(E2-E); % Change in misfit
     end
     
@@ -408,14 +405,13 @@ for m = 1:maxcnt*datsav
     
     
     
-    % If number of iterations is square number, larger than effective
-    % sample size, test for convergence
+    
     if mod(sqrt(cnt),1)==0 && cnt >= EffectSamp/datsav
 
         cnt2 = cnt2+1;
-        Rexit = GRConverge(x,ensemble);  %Gelman-Rubin multivariate criterium
+        Rexit = GRConverge(x,ensemble);
         
-        rrr(cnt2) = Rexit; %debug
+        rrr(cnt2) = Rexit;
         
         if Rexit<=ExitCrit
             disp(sprintf('MCMC exiting after %d iters with R of %0.6f',m,Rexit))
