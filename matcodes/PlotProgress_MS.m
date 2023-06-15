@@ -84,29 +84,29 @@ set(H,'renderer','painters');
 print(H,sprintf('%s/Converge_Baseline_run%02d.eps',figfolder,iset),'-depsc','-r200'); 
 
 
-%%
+%% Noise Hyperparameter plot (not used currently)
 
 
-H=figure(5);clf
-set(H,'color','w')
-set(H,'units','inches','position',[18 5 4 2.5*(d0.Ndet)])
-set(H,'invertHardcopy','off')
-set(H,'units','inches','PaperSize', [4 2.5*(d0.Ndet)]);
-set(H,'PaperPositionMode','auto')
-
-hypername = {'L4','L3','L2','L1','H1','B2','B3','B4','Daly'};
-
-for ii=1:d0.Ndet
-    subplot(d0.Ndet,1,ii)
-    aa=plot(ens_sig(ii,1:cnt),'k');set(gca,'xscale','log')
-    xlabel('Saved iteration','FontSize',fs)
-    ylabel(sprintf('%s baseline',hypername{ii}),'FontSize',fs)
-end
-
-
-set(H,'renderer','painters');
-print(H,sprintf('%s/Converge_Noise_run%02d.eps',figfolder,iset),'-depsc','-r200'); 
-
+% H=figure(5);clf
+% set(H,'color','w')
+% set(H,'units','inches','position',[18 5 4 2.5*(d0.Ndet)])
+% set(H,'invertHardcopy','off')
+% set(H,'units','inches','PaperSize', [4 2.5*(d0.Ndet)]);
+% set(H,'PaperPositionMode','auto')
+% 
+% hypername = {'L4','L3','L2','L1','H1','B2','B3','B4','Daly'};
+% 
+% for ii=1:d0.Ndet
+%     subplot(d0.Ndet,1,ii)
+%     aa=plot(ens_sig(ii,1:cnt),'k');set(gca,'xscale','log')
+%     xlabel('Saved iteration','FontSize',fs)
+%     ylabel(sprintf('%s baseline',hypername{ii}),'FontSize',fs)
+% end
+% 
+% 
+% set(H,'renderer','painters');
+% print(H,sprintf('%s/Converge_Noise_run%02d.eps',figfolder,iset),'-depsc','-r200'); 
+% 
 
 
 

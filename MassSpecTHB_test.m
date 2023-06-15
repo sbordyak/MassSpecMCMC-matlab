@@ -59,14 +59,16 @@ InterpMat = d0.InterpMat;
 
 
 %% CREATE INITIAL MODEL AND MODEL DATA
-[x0,d,Intensity] = InitializeModel_synth(d0);
+%[x0,d,Intensity] = InitializeModel_synth(d0);
 
-x0.lograt = exp(x0.lograt); %debug
-x0.sig = [4000;4000;0;11;11];
+user_DFGain = 0.9;
+[x0,C0,d] = InitializeModelCov_synth(d0,user_DFGain);
 
-% Hardcode values for some test I did
-%x0.BL = [3e4; -1e4];
-%x0.DFgain = 0.9;
+%x0.lograt = exp(x0.lograt); %debug
+%x0.sig = [4000;4000;0;11;11];
+
+Dsig = x0.Dsig;
+
 
 
 %% INVERSION WITH rj-MCMC
@@ -83,7 +85,8 @@ burn = 1;  % Burn-in, start doing stats after this many saved models
 temp=1; % Use tempering?
 Ntemp = 10000; % Cool search over this number of steps
 % Create tempering vector - start high, cool down to 1 then stay there
-TT = ones(maxcnt*datsav,1);TT(1:Ntemp) = linspace(5,1,Ntemp)';
+%TT = ones(maxcnt*datsav,1);TT(1:Ntemp) = linspace(5,1,Ntemp)';
+TT = ones(maxcnt*datsav,1);TT(1:Ntemp) = linspace(1,1,Ntemp)';
 
 
 % Baseline multiplier - weight Daly more strongly (I think)
@@ -107,27 +110,29 @@ prior.sigdaly = [0 0]; % Gaussian noise on Daly
 prior.sigpois = [0 10]; % Poisson noise on Daly
 
 
-% "Proposal Sigmas"
-% Standard deviations for proposing changes to model
-psig.BL = max(x0.BLstd)/10*1;  % Faraday Baseline
-psig.BLdaly = 1e-1*1;  % Daly Baseline 
-psig.lograt = 0.02; %0.0005*.2;  % Log Ratio %debug
-psig.I = max(max([x0.I{:}])-min([x0.I{:}]))/100*1 ; % Intensity
-psig.DFgain = 0.001; % Daly-Faraday gain
+% % "Proposal Sigmas"
+% % Standard deviations for proposing changes to model
+% psig.BL = max(x0.BLstd)/10*1;  % Faraday Baseline
+% psig.BLdaly = 1e-1*1;  % Daly Baseline 
+% %psig.lograt = 0.02; %0.0005*.2;  % Log Ratio %debug
+% psig.lograt = 0.0005*.2;  % Log Ratio 
+% psig.I = max(max([x0.I{:}])-min([x0.I{:}]))/100*1 ; % Intensity
+% psig.DFgain = 0.001; % Daly-Faraday gain
+% 
+% psig.sig = max(x0.BLstd); % Noise hyperparameter for Faraday
+% psig.sigpois = 0.5; % Poisson noise on Daly
+% psig.sigdaly = 0;  % Gaussian noise on Daly
 
-psig.sig = max(x0.BLstd); % Noise hyperparameter for Faraday
-psig.sigpois = 0.5; % Poisson noise on Daly
-psig.sigdaly = 0;  % Gaussian noise on Daly
-
+psig = [];
 
 Ndf = 1; % Number of DF gains = 1
 
 % Size of model: # isotopes + # intensity knots + # baselines + # df gain
 Nmod = d0.Niso + sum(d0.Ncycle) + d0.Nfar + Ndf ;
 
-% Initial covariance taken from Proposal Sigmas
-C0diag =  [psig.lograt*ones(d0.Niso,1);psig.I*ones(sum(d0.Ncycle),1);psig.BL*ones(d0.Nfar,1);psig.DFgain*ones(1,1)];
-C0 = (0.1)^2*Nmod^-1*diag(C0diag);
+% % Initial covariance taken from Proposal Sigmas
+% C0diag =  [psig.lograt*ones(d0.Niso,1);psig.I*ones(sum(d0.Ncycle),1);psig.BL*ones(d0.Nfar,1);psig.DFgain*ones(1,1)];
+% C0 = (0.1)^2*Nmod^-1*diag(C0diag);
 beta = 0.05;
 
 % Modified Gelman-Rubin Convergence 
@@ -169,21 +174,21 @@ for n = 1:d0.Nblock  % Iterate over blocks
     for mm=1:d0.Niso;
         % Calculate Daly data
         itmp = d0.iso_ind(:,mm) & d0.axflag & d0.block(:,n); % If isotope and axial and block number
-        %d(itmp) = exp(x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
-        d(itmp) = (x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));    %debug
+        d(itmp) = exp(x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
+        %d(itmp) = (x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));    %debug
         dnobl(itmp) = d(itmp);
         
         % Calculate Faraday datas
         itmp = d0.iso_ind(:,mm) & ~d0.axflag & d0.block(:,n);
-        %dnobl(itmp) = exp(x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline
-        dnobl(itmp) = (x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline % debug
+        dnobl(itmp) = exp(x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline
+        %dnobl(itmp) = (x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline % debug
         d(itmp) = dnobl(itmp) + x0.BL(d0.det_vec(itmp)); % Add baseline
         
     end
 end
 
 % New data covariance vector
-Dsig = sqrt(x0.sig(d0.det_vec).^2 + x0.sig(d0.iso_vec+d0.Ndet).*dnobl); 
+%Dsig = sqrt(x0.sig(d0.det_vec).^2 + x0.sig(d0.iso_vec+d0.Ndet).*dnobl); 
 
 % Initialize data residual vectors
 restmp=zeros(size(Dsig));
@@ -272,8 +277,8 @@ for m = 1:maxcnt*datsav
     % elude me.
     tmpBLind = [x2.BL; 0]; tmpBL = tmpBLind(d0.det_vec);
     tmpDF = ones(d0.Ndata,1); tmpDF(~d0.axflag) = x2.DFgain^-1;
-    %tmpLR = exp(x2.lograt(d0.iso_vec)); % debug
-    tmpLR = (x2.lograt(d0.iso_vec)); 
+    tmpLR = exp(x2.lograt(d0.iso_vec)); % debug
+    %tmpLR = (x2.lograt(d0.iso_vec)); 
     tmpI = zeros(d0.Ndata,1);
     for n=1:d0.Nblock
         Intensity2{n} = InterpMat{n}*x2.I{n};
@@ -288,7 +293,8 @@ for m = 1:maxcnt*datsav
     
     
     % New data covariance vector
-    Dsig2 = x2.sig(d0.det_vec).^2 + x2.sig(d0.iso_vec+d0.Ndet).*dnobl2;
+    %Dsig2 = x2.sig(d0.det_vec).^2 + x2.sig(d0.iso_vec+d0.Ndet).*dnobl2;
+    Dsig2 = Dsig;
     
     % Calculate residuals for current and new model
     restmp = (d0.data-d).^2;
@@ -343,22 +349,16 @@ for m = 1:maxcnt*datsav
         
         cnt=cnt+1; % Increment counter
         
-        ensemble(cnt).lograt=log(x.lograt); % Log ratios
+        ensemble(cnt).lograt=x.lograt; % Log ratios
         for mm=1:d0.Nblock
             ensemble(cnt).I{mm}=x.I{mm}; % Intensity by block
         end
         ensemble(cnt).BL=x.BL;  % Baselines
         ensemble(cnt).DFgain=x.DFgain;  %Daly-Faraday gain
-        ensemble(cnt).sig=x.sig;  % Noise hyperparameter
+        ensemble(cnt).sig= 1; %x.sig;  % Noise hyperparameter (Calc at beginning now)
         ensemble(cnt).E=E;  % Misfit
         ensemble(cnt).E0=E0; % Unweighted misfit
         
-        covstart = 0;  % After this many iterations, begin calculating covariance iteratively
-        if cnt>=covstart+1
-            % Iterative covariance
-            %[xmean,xcov] = UpdateMeanCovMS(x,xmean,xcov,m);
-            
-        end
              
         % Display update info to screen 
         if  mod(m,10*datsav)==0

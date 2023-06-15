@@ -153,42 +153,42 @@ set(gca,'FontSize',fs)
 %end
 
 
-%%
+%% Noise Hyperparameter panel (not used currently)
 
-
-subplot(5,2,[9 10])
-set(gca,'FontSize',fs)
-
-mcol = vir10([4 8],:);
-
-%mcol = cool(3);
-for m=1:d0.Ndet-1
-    [rhist,bins]=hist(ens_sig(m,burn:cnt),30);
-    dbins = bins(2)-bins(1);
-    %bar(bins,rhist/(cnt-burn)/dbins,'facecolor',mcol(m,:),'edgecolor','none');hold on;
-    aa(m)=bar(bins,rhist,'facecolor',mcol(m,:),'edgecolor','none');hold on;
-    %bar(bins,rhist/(cnt-burn)/dbins,'Barwidth', 1.05,'EdgeColor','none');hold on;
-    xlabel('Noise hyperparmeter');ylabel('Frequency','FontSize',fs)
-end
-
-spos=get(gca,'position');
-set(gca,'position',spos+[0 -.02 0 0])    
-    
-yy = get(gca,'ylim');
-yy=yy*1.6;
-set(gca,'ylim',yy)
-xx = get(gca,'xlim');
-xx(1)=xx(1) - 0.1*(xx(2)-xx(1));
-xx(2)=xx(2) + 0.2*(xx(2)-xx(1));
-set(gca,'xlim',xx)
-
-
-xx=sqrt(massspec.FnoiseVarianceCPS/integrationTime.reportinterval);
-plot(xx*[1 1],yy,'r--','LineWidth',1.5)
-
-legend([aa(1) aa(2)],{'L1','H1'});%,'Daly'})
-
-%plot(0*[1 1],yy,'r--','LineWidth',1.5)
+% 
+% subplot(5,2,[9 10])
+% set(gca,'FontSize',fs)
+% 
+% mcol = vir10([4 8],:);
+% 
+% %mcol = cool(3);
+% for m=1:d0.Ndet-1
+%     [rhist,bins]=hist(ens_sig(m,burn:cnt),30);
+%     dbins = bins(2)-bins(1);
+%     %bar(bins,rhist/(cnt-burn)/dbins,'facecolor',mcol(m,:),'edgecolor','none');hold on;
+%     aa(m)=bar(bins,rhist,'facecolor',mcol(m,:),'edgecolor','none');hold on;
+%     %bar(bins,rhist/(cnt-burn)/dbins,'Barwidth', 1.05,'EdgeColor','none');hold on;
+%     xlabel('Noise hyperparmeter');ylabel('Frequency','FontSize',fs)
+% end
+% 
+% spos=get(gca,'position');
+% set(gca,'position',spos+[0 -.02 0 0])    
+%     
+% yy = get(gca,'ylim');
+% yy=yy*1.6;
+% set(gca,'ylim',yy)
+% xx = get(gca,'xlim');
+% xx(1)=xx(1) - 0.1*(xx(2)-xx(1));
+% xx(2)=xx(2) + 0.2*(xx(2)-xx(1));
+% set(gca,'xlim',xx)
+% 
+% 
+% xx=sqrt(massspec.FnoiseVarianceCPS/integrationTime.reportinterval);
+% plot(xx*[1 1],yy,'r--','LineWidth',1.5)
+% 
+% legend([aa(1) aa(2)],{'L1','H1'});%,'Daly'})
+% 
+% %plot(0*[1 1],yy,'r--','LineWidth',1.5)
 
 %%
 set(H,'renderer','painters');

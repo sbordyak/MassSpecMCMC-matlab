@@ -20,21 +20,21 @@ for n = 1:d0.Nblock
     
     for mm=1:d0.Niso;
         itmp = d0.iso_ind(:,mm) & d0.axflag & d0.block(:,n);
-        d(itmp,1) = (x.lograt(mm))*Intensity{n}(d0.time_ind(itmp)); %debug
-        dnobl(itmp,1) = (x.lograt(mm))*Intensity{n}(d0.time_ind(itmp)); %debug
-        %d(itmp,1) = exp(x.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
-        %dnobl(itmp,1) = exp(x.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
+        %d(itmp,1) = (x.lograt(mm))*Intensity{n}(d0.time_ind(itmp)); %debug
+        %dnobl(itmp,1) = (x.lograt(mm))*Intensity{n}(d0.time_ind(itmp)); %debug
+        d(itmp,1) = exp(x.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
+        dnobl(itmp,1) = exp(x.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
         
         itmp = d0.iso_ind(:,mm) & ~d0.axflag & d0.block(:,n);
-        d(itmp,1) = (x.lograt(mm))*x.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)) + x.BL(d0.det_vec(itmp)); %debug
-        dnobl(itmp,1) = (x.lograt(mm))*x.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); %debug        
-        %d(itmp,1) = exp(x.lograt(mm))*x.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)) + x.BL(d0.det_vec(itmp)); 
-        %dnobl(itmp,1) = exp(x.lograt(mm))*x.DFgain^-1 *Intensity{n}(d0.time_ind(itmp));
+        %d(itmp,1) = (x.lograt(mm))*x.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)) + x.BL(d0.det_vec(itmp)); %debug
+        %dnobl(itmp,1) = (x.lograt(mm))*x.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); %debug        
+        d(itmp,1) = exp(x.lograt(mm))*x.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)) + x.BL(d0.det_vec(itmp)); 
+        dnobl(itmp,1) = exp(x.lograt(mm))*x.DFgain^-1 *Intensity{n}(d0.time_ind(itmp));
     end
 end
 
 %Dsig = sqrt(x.sig(d0.det_vec).^2 + x.sig(d0.iso_vec+d0.Ndet).*dnobl); % New data covar vector
-Dsig = sqrt(x.sig(d0.det_vec).^2 + x.sig(end).*dnobl); % New data covar vector   
+Dsig = sqrt(x0.Dsig); %sqrt(x.sig(d0.det_vec).^2 + x.sig(end).*dnobl); % New data covar vector   
 
 
 rnr = 10;

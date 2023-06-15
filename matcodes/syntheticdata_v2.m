@@ -143,11 +143,11 @@ for ii = 1:Nset
         data(time.Pb208AxialTimeIndices,3) = data(time.Pb208AxialTimeIndices,3) + measdata.iPb208IC;
         data(time.Pb208AxialTimeIndices,2) = data(time.Pb208AxialTimeIndices,2) + measdata.iPb206F;
         
-        
+        return
         %% Reproduce the comma-separated .txt file produced by Ionvantage
         
         
-        save(sprintf( '%sSyntheticDataset_%02d.mat',foldername,ii),'data','measdata','truedata','integrationTime','intensity','intensityFunction','time','massspec')
+        %save(sprintf( '%sSyntheticDataset_%02d.mat',foldername,ii),'data','measdata','truedata','integrationTime','intensity','intensityFunction','time','massspec')
         
         if jj==1
             filenamestr = sprintf( '%sSyntheticDataset_%02d.txt',foldername,ii);

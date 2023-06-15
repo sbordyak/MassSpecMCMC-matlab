@@ -59,15 +59,17 @@ InterpMat = d0.InterpMat;
 
 
 %% CREATE INITIAL MODEL AND MODEL DATA
-[x0,d,Intensity] = InitializeModel_synth(d0);
+%[x0,d,Intensity] = InitializeModel_synth(d0);
 
-x0.lograt = exp(x0.lograt); %debug
-x0.sig = [4000;4000;0;11;11];
+user_DFGain = 0.9;
+[x0,C0,d,Intensity] = InitializeModelCov_synth(d0,user_DFGain);
 
-% Hardcode values for some test I did
-%x0.BL = [3e4; -1e4];
-%x0.DFgain = 0.9;
+%x0.lograt = exp(x0.lograt); %debug
+%x0.sig = [4000;4000;0;11;11];
 
+Dsig = x0.Dsig;
+
+return
 
 %% INVERSION WITH rj-MCMC
 % Hardcoded here, presumably set by user in file or GUI?
@@ -80,8 +82,11 @@ datsav = 10;  % Save model every this many steps
 
 burn = 1;  % Burn-in, start doing stats after this many saved models
 
-temp=1; % Unused parameter for parallel tempering algorithm
-tempering = ones(mxcnt*datsav);tempering(1:Ntemp) = linspace(10,1,Ntemp)';
+temp=1; % Use tempering?
+Ntemp = 10000; % Cool search over this number of steps
+% Create tempering vector - start high, cool down to 1 then stay there
+%TT = ones(maxcnt*datsav,1);TT(1:Ntemp) = linspace(5,1,Ntemp)';
+TT = ones(maxcnt*datsav,1);TT(1:Ntemp) = linspace(1,1,Ntemp)';
 
 
 % Baseline multiplier - weight Daly more strongly (I think)
@@ -105,35 +110,37 @@ prior.sigdaly = [0 0]; % Gaussian noise on Daly
 prior.sigpois = [0 10]; % Poisson noise on Daly
 
 
-% "Proposal Sigmas"
-% Standard deviations for proposing changes to model
-psig.BL = max(x0.BLstd)/10*1;  % Faraday Baseline
-psig.BLdaly = 1e-1*1;  % Daly Baseline 
-psig.lograt = 0.02; %0.0005*.2;  % Log Ratio %debug
-psig.I = max(max([x0.I{:}])-min([x0.I{:}]))/100*1 ; % Intensity
-psig.DFgain = 0.001; % Daly-Faraday gain
+% % "Proposal Sigmas"
+% % Standard deviations for proposing changes to model
+% psig.BL = max(x0.BLstd)/10*1;  % Faraday Baseline
+% psig.BLdaly = 1e-1*1;  % Daly Baseline 
+% %psig.lograt = 0.02; %0.0005*.2;  % Log Ratio %debug
+% psig.lograt = 0.0005*.2;  % Log Ratio 
+% psig.I = max(max([x0.I{:}])-min([x0.I{:}]))/100*1 ; % Intensity
+% psig.DFgain = 0.001; % Daly-Faraday gain
+% 
+% psig.sig = max(x0.BLstd); % Noise hyperparameter for Faraday
+% psig.sigpois = 0.5; % Poisson noise on Daly
+% psig.sigdaly = 0;  % Gaussian noise on Daly
 
-psig.sig = max(x0.BLstd); % Noise hyperparameter for Faraday
-psig.sigpois = 0.5; % Poisson noise on Daly
-psig.sigdaly = 0;  % Gaussian noise on Daly
-
+psig = [];
 
 Ndf = 1; % Number of DF gains = 1
 
 % Size of model: # isotopes + # intensity knots + # baselines + # df gain
 Nmod = d0.Niso + sum(d0.Ncycle) + d0.Nfar + Ndf ;
 
-% Initial covariance taken from Proposal Sigmas
-C0diag =  [psig.lograt*ones(d0.Niso,1);psig.I*ones(sum(d0.Ncycle),1);psig.BL*ones(d0.Nfar,1);psig.DFgain*ones(1,1)];
-C0 = (0.1)^2*Nmod^-1*diag(C0diag);
+% % Initial covariance taken from Proposal Sigmas
+% C0diag =  [psig.lograt*ones(d0.Niso,1);psig.I*ones(sum(d0.Ncycle),1);psig.BL*ones(d0.Nfar,1);psig.DFgain*ones(1,1)];
+% C0 = (0.1)^2*Nmod^-1*diag(C0diag);
 beta = 0.05;
 
 % Modified Gelman-Rubin Convergence 
 alpha=0.025; % Confidence interval we want to be accurate (0.05 = 95% CI)
 epsilon=0.025; % Relative confidence in mean compared to std dev estimator(?)
 EffectSamp = 2^(2/Nmod)*pi/(Nmod*gamma(Nmod/2))^(2/Nmod)*chi2inv(1-alpha,Nmod)/epsilon^2;
-Mchain = 1;
-ExitCrit = sqrt(1+Mchain/EffectSamp);
+Mchain = 1; % Number of Chains
+ExitCrit = sqrt(1+Mchain/EffectSamp); % Exit when G-R criterium less than this
 
 
 % Index for data covariance term (change if multiple types of data)
@@ -167,21 +174,21 @@ for n = 1:d0.Nblock  % Iterate over blocks
     for mm=1:d0.Niso;
         % Calculate Daly data
         itmp = d0.iso_ind(:,mm) & d0.axflag & d0.block(:,n); % If isotope and axial and block number
-        %d(itmp) = exp(x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
-        d(itmp) = (x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));    %debug
+        d(itmp) = exp(x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
+        %d(itmp) = (x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));    %debug
         dnobl(itmp) = d(itmp);
         
         % Calculate Faraday datas
         itmp = d0.iso_ind(:,mm) & ~d0.axflag & d0.block(:,n);
-        %dnobl(itmp) = exp(x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline
-        dnobl(itmp) = (x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline % debug
+        dnobl(itmp) = exp(x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline
+        %dnobl(itmp) = (x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline % debug
         d(itmp) = dnobl(itmp) + x0.BL(d0.det_vec(itmp)); % Add baseline
         
     end
 end
 
 % New data covariance vector
-Dsig = sqrt(x0.sig(d0.det_vec).^2 + x0.sig(d0.iso_vec+d0.Ndet).*dnobl); 
+%Dsig = sqrt(x0.sig(d0.det_vec).^2 + x0.sig(d0.iso_vec+d0.Ndet).*dnobl); 
 
 % Initialize data residual vectors
 restmp=zeros(size(Dsig));
@@ -192,7 +199,7 @@ restmp = (d0.data-d).^2;
 
 
 % Calculate error function
-E=sum(restmp.*blmult./Dsig);  % Weighted by noise variance (for acceptance)
+E=sum(restmp.*blmult./Dsig/TT(1));  % Weighted by noise variance (for acceptance)
 E0=sum(restmp);  % Unweighted (for tracking convergence)
 
 
@@ -248,16 +255,17 @@ for m = 1:maxcnt*datsav
     allflag = 1;
     temp = 1;
     
-    if m<=Nmod %cnt<100000 
+    if m<=2*Nmod   % Use initial covariance until 2*N
         C = C0; 
-    else
+    else % After that begin updating based on model covariance 
+        
+        % Next proposal based initial variance and iterative covariance
         C = beta*C0 + (1-beta)*2.38^2*Nmod^-1*xcov;   
-        C=(C'+C)/2;
+        C=(C'+C)/2; % Make sure it's symmetrical
     end
     
-    % Draw random numbers based on covariance for next update
+    % Draw random numbers based on covariance for next proposal
     delx_adapt = mvnrnd(zeros(Nmod,1),C)';
-    
     
     
     % Update model and save proposed update values (delx)
@@ -269,8 +277,8 @@ for m = 1:maxcnt*datsav
     % elude me.
     tmpBLind = [x2.BL; 0]; tmpBL = tmpBLind(d0.det_vec);
     tmpDF = ones(d0.Ndata,1); tmpDF(~d0.axflag) = x2.DFgain^-1;
-    %tmpLR = exp(x2.lograt(d0.iso_vec)); % debug
-    tmpLR = (x2.lograt(d0.iso_vec)); 
+    tmpLR = exp(x2.lograt(d0.iso_vec)); % debug
+    %tmpLR = (x2.lograt(d0.iso_vec)); 
     tmpI = zeros(d0.Ndata,1);
     for n=1:d0.Nblock
         Intensity2{n} = InterpMat{n}*x2.I{n};
@@ -302,8 +310,8 @@ for m = 1:maxcnt*datsav
         dE=E2-E; % Change in misfit
     else                     
         % If any other model update
-        E=sum(restmp.*blmult./Dsig);
-        E2=sum(restmp2.*blmult./Dsig2);
+        E=sum(restmp.*blmult./Dsig/TT(m));
+        E2=sum(restmp2.*blmult./Dsig2/TT(m));
         dE=temp^-1*(E2-E); % Change in misfit
     end
     
@@ -405,13 +413,14 @@ for m = 1:maxcnt*datsav
     
     
     
-    
+    % If number of iterations is square number, larger than effective
+    % sample size, test for convergence
     if mod(sqrt(cnt),1)==0 && cnt >= EffectSamp/datsav
 
         cnt2 = cnt2+1;
-        Rexit = GRConverge(x,ensemble);
+        Rexit = GRConverge(x,ensemble);  %Gelman-Rubin multivariate criterium
         
-        rrr(cnt2) = Rexit;
+        rrr(cnt2) = Rexit; %debug
         
         if Rexit<=ExitCrit
             disp(sprintf('MCMC exiting after %d iters with R of %0.6f',m,Rexit))

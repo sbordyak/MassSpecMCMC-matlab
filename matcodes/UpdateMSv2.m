@@ -12,15 +12,11 @@ Nfar = length(x.BL);
 Ndf = 1;
 
 
-
-%xind = [ones(Niso,1); psig.I*ones(sum(Ncycle),1); psig.BL*ones(Nfar,1); psig.DFgain*ones(Ndf,1)];
-
-ps0diag =  [psig.lograt*ones(Niso,1);          psig.I*ones(sum(Ncycle),1);     psig.BL*ones(Nfar,1);     psig.DFgain*ones(Ndf,1)];
+%ps0diag =  [psig.lograt*ones(Niso,1);          psig.I*ones(sum(Ncycle),1);     psig.BL*ones(Nfar,1);     psig.DFgain*ones(Ndf,1)];
 priormin = [prior.lograt(1)*ones(Niso-1,1); 0; prior.I(1)*ones(sum(Ncycle),1); prior.BL(1)*ones(Nfar,1); prior.DFgain(1)*ones(Ndf,1)];
 priormax = [prior.lograt(2)*ones(Niso-1,1); 0; prior.I(2)*ones(sum(Ncycle),1); prior.BL(2)*ones(Nfar,1); prior.DFgain(2)*ones(Ndf,1)];
 
 
-%xx0 = [x.lograt; x.I{1}; x.I{2}; x.BL; x.DFgain];
 
 
 xx0 = x.lograt;
@@ -60,7 +56,7 @@ if strcmp(oper(1:3),'cha')
         if adaptflag
             delx = sqrt(xcov(nind,nind))*randn(1); %mvnrnd(zeros(1),xcov(nind,nind));
         else
-            delx = ps0diag(nind)*randn(1);
+            %delx = ps0diag(nind)*randn(1);
         end
         
         
@@ -74,33 +70,8 @@ if strcmp(oper(1:3),'cha')
         
     else
         
-        %
-        %delx(:,1) = mvnrnd(zeros(size(xx0)),2.38^2*diag(ps0diag).^2)/10/length(xind);
-        %
-        %     %%
-        %         enso = [ensemble.lograt];
-        %
-        %         for ii = 1:Nblock
-        %             for n = 1:cnt;
-        %                 ens_I{ii}(:,n) =[ensemble(n).I{ii}];
-        %             end
-        %             enso = [enso; ens_I{ii}];
-        %
-        %         end
-        %         enso = [enso; [ensemble.BL]];
-        %         enso = [enso; [ensemble.DFgain]];
-        %
-        %         xcov = cov(enso(:,ceil(end/2):end)');
-        %         %%
-        %         delx(:,1) = mvnrnd(zeros(size(xx0)),2.38^2*xcov/length(xind));
-        
-        
-        
-        
-        %VARY ALL AT A TIME
-        
-        %%delx(:,1) = mvnrnd(zeros(size(xx0)),xcov);
-        %delx(:,1) = mvnrnd(zeros(size(xx0)),2.38^2*xcov/length(xind));
+
+
         delx = delx_adapt;
         
         xx =  xx0 + delx;
@@ -121,7 +92,7 @@ if strcmp(oper(1:3),'cha')
     x2.BL = xx(xind==(2+Nblock));
     x2.DFgain = xx(xind==(3+Nblock));
     
-    x2.sig = x.sig;
+%    x2.sig = x.sig; % Calculated at beginning now
     
     
     

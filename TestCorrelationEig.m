@@ -1,8 +1,8 @@
 % Test correlation between model parameters that might be causing difficulty 
 % In MCMC algorithm.
 
-for kk = 1:100
-    
+for kk = 1:1000
+
 p1 = 1000; % Amount of Isotope 1
 p2 = 1; % Amount of Isotope 2
 
@@ -11,7 +11,7 @@ s1 = p1/10;
 s2 = p2/100;
 
 % Generate N random samples of each
-N=100;
+N=10;
 d1 = p1 + s1*randn(N,1);
 d2 = p2 + s2*randn(N,1);
 
@@ -24,32 +24,39 @@ prop1 = p1/400;
 propnoise = 0.001;
 
 % Allocate parameters vectors
-xlograt = zeros(M,1); % Log ratio log(p2/p1)
+xlograt = zeros(M,2); % Log ratio log(p2/p1)
 x1 = zeros(M,1); % Intensity of Isotope 1
 xnoise =  zeros(M,2); 
 
 % Set equal to correct values to start
 x1(1) = p1;% + randn*prop1;
-xlograt(1) = log(p2/p1);% + randn*proplograt;
+xlograt(1,:) = [0 log(p2/p1)];% + randn*proplograt;
 xnoise(1,:) = log([s1 s2]);
+
+A=[1 0;-1 1];
+[U, S, V] = svd(A);
 
 kept=0;
 
 % Begin MCMC
 for ii = 1:M-1
-    nind = randi(2); % Choose param to update
+    nind = randi(3); % Choose param to update
     
     if nind==1 % If intensity of 1
         x1tmp = x1(ii) + randn*prop1; % Update this
-        xlrtmp = xlograt(ii);
+        xlrtmp = xlograt(ii,:);
         xntmp = xnoise(ii,:);
-    elseif nind==2  % If log ratio
+    elseif nind<=3  % If log ratio
+        nn = nind-1;
         x1tmp = x1(ii);
-        xlrtmp = xlograt(ii) + randn*proplograt; % Update that
+        xlrtmp = xlograt(ii,:);
+         dxlrtmp = randn*proplograt*sqrt(S(nn,nn))*V(nn,:);
+        xlrtmp = xlrtmp + dxlrtmp; % Update that
+        %xlrtmp(nn) = xlrtmp(nn) + randn*proplograt; % Update that
         xntmp = xnoise(ii,:);
     else
         x1tmp = x1(ii);
-        xlrtmp = xlograt(ii);
+        xlrtmp = xlograt(ii,:);
            
         nind2 = randi(2);
         xntmp = xnoise(ii,:);
@@ -57,13 +64,13 @@ for ii = 1:M-1
     end
 
     % Model isotope amounts for old values
-    mod01 = x1(ii);
-    mod02 = x1(ii)*exp(xlograt(ii));
+    mod01 = x1(ii)*exp(xlograt(ii,1));
+    mod02 = x1(ii)*exp(xlograt(ii,2));
     mod0s = exp(xnoise(ii,:));
     
     % Model isotope amounts for new values
-    mod1 = x1tmp;
-    mod2 = x1tmp*exp(xlrtmp);
+    mod1 = x1tmp*exp(xlrtmp(1));
+    mod2 = x1tmp*exp(xlrtmp(2));
     mods = exp(xntmp);
     
     % Calculate misfit with both sets
@@ -76,13 +83,13 @@ for ii = 1:M-1
     
     if keep>rand(1) % If keep new values
         x1(ii+1) = x1tmp;
-        xlograt(ii+1) = xlrtmp;
+        xlograt(ii+1,:) = xlrtmp;
         xnoise(ii+1,:) = xntmp;
 
         kept=kept+1;
     else % If keep old values
         x1(ii+1) = x1(ii);
-        xlograt(ii+1) = xlograt(ii);
+        xlograt(ii+1,:) = xlograt(ii,:);
         xnoise(ii+1,:) = xnoise(ii,:);
     end
     
@@ -92,30 +99,28 @@ burn = M/2; % Burn in period
 
 % Trim vectors
 x1 = x1(burn+1:end);
-xlograt = xlograt(burn+1:end);
+xlograt = xlograt(burn+1:end,:);
 
 %%
-
+% 
 % figure
 % set(gcf,'Position',[360   480   522   218])
 % subplot(1,2,1)
-% plot(x1,xlograt,'k.',p1,log(p2/p1),'rv',mean(d1),log(mean(d2)/mean(d1)),'co')
-% xlabel('Isotope 1');ylabel('Log Ratio')
+% plot(x1.*exp(xlograt(:,1)),xlograt(:,2)-xlograt(:,1),'k.',p1,log(p2/p1),'rv',mean(d1),log(mean(d2)/mean(d1)),'co')
+% xlabel('Isotope Ratio');ylabel('Log Ratio')
 % title(sprintf('S1=%.0e, S2=%.0e',s1/p1,s2/p2));
-% legend(sprintf('Corr = %.2f',corr(x1,xlograt)))
+% legend(sprintf('Corr = %.2f',corr(x1,xlograt(:,2))))
 % 
 % subplot(1,2,2)
-% plot(x1,x1.*exp(xlograt),'k.',p1,p2,'rv',mean(d1),mean(d2),'co')
+% plot(x1.*exp(xlograt(:,1)),x1.*exp(xlograt(:,2)),'k.',p1,p2,'rv',mean(d1),mean(d2),'co')
 % xlabel('Isotope 1');ylabel('Isotope 2')
 % title(sprintf('%.1f%% kept',100*kept/M));
-% legend(sprintf('Corr = %.2f',corr(x1,x1.*exp(xlograt))))
-
+% legend(sprintf('Corr = %.2f',corr(x1,x1.*exp(xlograt(:,2)))))
 
 disp(sprintf('True/MCMC/Stdev: %.4f %.4f %.4f',log(p1/p2),...
-    (mean(xlograt)),std(xlograt(:,1))))
+    (mean(xlograt(:,1)-xlograt(:,2))),std(xlograt(:,1)-xlograt(:,2))))
 
 
-xout(kk) = (mean(xlograt));
-xsout(kk) = (std(xlograt));
+xout(kk) = exp(mean(xlograt(:,1)-xlograt(:,2)));
 
 end
