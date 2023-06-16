@@ -3,3 +3,6 @@
 # WINOS
 Thumbs.db
 
+# OSX / *nix default autosave extension
+*.m~
+
