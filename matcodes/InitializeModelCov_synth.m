@@ -104,7 +104,7 @@ for m = 1:d0.Niso
     for ii = 1:length(testLR) 
         testx0 = x0;
         testx0.lograt(m) = x0.lograt(m) + testLR(ii);
-        d = ModelInitData(testx0,d0);
+        d = ModelMSData(testx0,d0);
         Etmp(ii) = sum((d0.data-d).^2./Dsig);
     end    
     EE=(Etmp-min(Etmp));
@@ -120,7 +120,7 @@ for n = 1:d0.Nblock
         for ii = 1:length(testI)
             testx0 = x0;
             testx0.I{n}(m) = x0.I{n}(m) + testI(ii);
-            d = ModelInitData(testx0,d0);
+            d = ModelMSData(testx0,d0);
             Etmp(ii) = sum((d0.data-d).^2./Dsig);
         end
         EE=(Etmp-min(Etmp));
@@ -137,7 +137,7 @@ Etmp = zeros(size(testDF));
 for ii = 1:length(testDF)
     testx0 = x0;
     testx0.DFgain = x0.DFgain + testDF(ii);
-    d = ModelInitData(testx0,d0);
+    d = ModelMSData(testx0,d0);
     Etmp(ii) = sum((d0.data-d).^2./Dsig);
 end
 EE=(Etmp-min(Etmp));
@@ -152,7 +152,7 @@ for m = 1:d0.Nfar
     for ii = 1:length(testBL) 
         testx0 = x0;
         testx0.BL(m) = x0.BL(m) + testBL(ii);
-        d = ModelInitData(testx0,d0);
+        d = ModelMSData(testx0,d0);
         Etmp(ii) = sum((d0.data-d).^2./Dsig);
     end  
     EE=(Etmp-min(Etmp));
@@ -163,10 +163,11 @@ end
 
 
 
-d = ModelInitData(x0,d0);
+d = ModelMSData(x0,d0);
 
 
 C0diag =  [sqrt(x0.logratVar) sqrt([x0.IVar{:}]) sqrt(x0.BLVar) sqrt(x0.DFgainVar)];
+%C0diag =  [(x0.logratVar) ([x0.IVar{:}]) (x0.BLVar) (x0.DFgainVar)];
 d0.Nmod = length(C0diag);
 C0 = (0.1)^2*d0.Nmod^-1*diag(C0diag);
 

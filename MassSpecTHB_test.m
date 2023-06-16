@@ -142,6 +142,9 @@ EffectSamp = 2^(2/Nmod)*pi/(Nmod*gamma(Nmod/2))^(2/Nmod)*chi2inv(1-alpha,Nmod)/e
 Mchain = 1; % Number of Chains
 ExitCrit = sqrt(1+Mchain/EffectSamp); % Exit when G-R criterium less than this
 
+% Assign initial values for model x
+x=x0;
+
 
 % Index for data covariance term (change if multiple types of data)
 % Can use more complex model for day - correlated or time variable.
@@ -151,41 +154,40 @@ ExitCrit = sqrt(1+Mchain/EffectSamp); % Exit when G-R criterium less than this
 % data covariance vector
 %Dsig = x.sig(sig_ind);
 
-% Assign initial values for model x
-x=x0;
 
 
-%% Forward model data from initial model
 
-% Forward model baseline measurements
-for mm=1:d0.Nfar%+1  % Iterate over Faradays
-    d(d0.blflag & d0.det_ind(:,mm),1) = x0.BL(mm); % Faraday Baseline
-    dnobl(d0.blflag & d0.det_ind(:,mm),1) = 0; % Data with No Baseline
-end
+% %% Forward model data from initial model
 
-% Forward model isotope measurements
-for n = 1:d0.Nblock  % Iterate over blocks
-    
-    % Calculate block intensity from intensity variables
-    Intensity{n} = InterpMat{n}*x0.I{n};  
-    Intensity2{n} = Intensity{n};
-    
-    %Iterate over Isotopes
-    for mm=1:d0.Niso;
-        % Calculate Daly data
-        itmp = d0.iso_ind(:,mm) & d0.axflag & d0.block(:,n); % If isotope and axial and block number
-        d(itmp) = exp(x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
-        %d(itmp) = (x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));    %debug
-        dnobl(itmp) = d(itmp);
-        
-        % Calculate Faraday datas
-        itmp = d0.iso_ind(:,mm) & ~d0.axflag & d0.block(:,n);
-        dnobl(itmp) = exp(x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline
-        %dnobl(itmp) = (x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline % debug
-        d(itmp) = dnobl(itmp) + x0.BL(d0.det_vec(itmp)); % Add baseline
-        
-    end
-end
+% % Forward model baseline measurements
+% for mm=1:d0.Nfar%+1  % Iterate over Faradays
+%     d(d0.blflag & d0.det_ind(:,mm),1) = x0.BL(mm); % Faraday Baseline
+%     dnobl(d0.blflag & d0.det_ind(:,mm),1) = 0; % Data with No Baseline
+% end
+% 
+% % Forward model isotope measurements
+% for n = 1:d0.Nblock  % Iterate over blocks
+%     
+%     % Calculate block intensity from intensity variables
+%     Intensity{n} = InterpMat{n}*x0.I{n};  
+%     Intensity2{n} = Intensity{n};
+%     
+%     %Iterate over Isotopes
+%     for mm=1:d0.Niso;
+%         % Calculate Daly data
+%         itmp = d0.iso_ind(:,mm) & d0.axflag & d0.block(:,n); % If isotope and axial and block number
+%         d(itmp) = exp(x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
+%         %d(itmp) = (x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));    %debug
+%         dnobl(itmp) = d(itmp);
+%         
+%         % Calculate Faraday datas
+%         itmp = d0.iso_ind(:,mm) & ~d0.axflag & d0.block(:,n);
+%         dnobl(itmp) = exp(x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline
+%         %dnobl(itmp) = (x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline % debug
+%         d(itmp) = dnobl(itmp) + x0.BL(d0.det_vec(itmp)); % Add baseline
+%         
+%     end
+% end
 
 % New data covariance vector
 %Dsig = sqrt(x0.sig(d0.det_vec).^2 + x0.sig(d0.iso_vec+d0.Ndet).*dnobl); 
@@ -272,26 +274,28 @@ for m = 1:maxcnt*datsav
     [x2,delx] = UpdateMSv2(oper,x,psig,prior,ensemble,xcov,delx_adapt,adaptflag,allflag);
     
       
-    %% Create updated data based on new model
-    % I was working on making this more compact and some of the details
-    % elude me.
-    tmpBLind = [x2.BL; 0]; tmpBL = tmpBLind(d0.det_vec);
-    tmpDF = ones(d0.Ndata,1); tmpDF(~d0.axflag) = x2.DFgain^-1;
-    tmpLR = exp(x2.lograt(d0.iso_vec)); % debug
-    %tmpLR = (x2.lograt(d0.iso_vec)); 
-    tmpI = zeros(d0.Ndata,1);
-    for n=1:d0.Nblock
-        Intensity2{n} = InterpMat{n}*x2.I{n};
-        tmpI(block0(n):blockf(n)) = Intensity2{n}(d0.time_ind(block0(n):blockf(n)));
-        tmpI(blockax0(n):blockaxf(n)) = Intensity2{n}(d0.time_ind(blockax0(n):blockaxf(n)));
-    end
+%     %% Create updated data based on new model
+%     % I was working on making this more compact and some of the details
+%     % elude me.
+%     tmpBLind = [x2.BL; 0]; tmpBL = tmpBLind(d0.det_vec);
+%     tmpDF = ones(d0.Ndata,1); tmpDF(~d0.axflag) = x2.DFgain^-1;
+%     tmpLR = exp(x2.lograt(d0.iso_vec)); % debug
+%     %tmpLR = (x2.lograt(d0.iso_vec)); 
+%     tmpI = zeros(d0.Ndata,1);
+%     for n=1:d0.Nblock
+%         Intensity2{n} = InterpMat{n}*x2.I{n};
+%         tmpI(block0(n):blockf(n)) = Intensity2{n}(d0.time_ind(block0(n):blockf(n)));
+%         tmpI(blockax0(n):blockaxf(n)) = Intensity2{n}(d0.time_ind(blockax0(n):blockaxf(n)));
+%     end
+%     
+%     dnobl2 = tmpDF.*tmpLR.*tmpI;
+%     
+%     % New data vector
+%     d2 = dnobl2 + tmpBL;
     
-    dnobl2 = tmpDF.*tmpLR.*tmpI;
     
-    % New data vector
-    d2 = dnobl2 + tmpBL;
-    
-    
+    d2 = ModelMSData(x2,d0);
+
     % New data covariance vector
     %Dsig2 = x2.sig(d0.det_vec).^2 + x2.sig(d0.iso_vec+d0.Ndet).*dnobl2;
     Dsig2 = Dsig;
@@ -332,8 +336,8 @@ for m = 1:maxcnt*datsav
         d=d2; % Data
         x=x2; % Model
         Dsig=Dsig2;  % Model variance
-        dnobl=dnobl2;  % Data without baseline
-        Intensity=Intensity2;  % Intensity
+%        dnobl=dnobl2;  % Data without baseline
+%        Intensity=Intensity2;  % Intensity
         
         % Display info
         kept(OpNumMS(oper),1) = kept(OpNumMS(oper),1)+1;

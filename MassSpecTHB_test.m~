@@ -62,14 +62,14 @@ InterpMat = d0.InterpMat;
 %[x0,d,Intensity] = InitializeModel_synth(d0);
 
 user_DFGain = 0.9;
-[x0,C0,d,Intensity] = InitializeModelCov_synth(d0,user_DFGain);
+[x0,C0,d] = InitializeModelCov_synth(d0,user_DFGain);
 
 %x0.lograt = exp(x0.lograt); %debug
 %x0.sig = [4000;4000;0;11;11];
 
 Dsig = x0.Dsig;
 
-return
+
 
 %% INVERSION WITH rj-MCMC
 % Hardcoded here, presumably set by user in file or GUI?
@@ -142,6 +142,9 @@ EffectSamp = 2^(2/Nmod)*pi/(Nmod*gamma(Nmod/2))^(2/Nmod)*chi2inv(1-alpha,Nmod)/e
 Mchain = 1; % Number of Chains
 ExitCrit = sqrt(1+Mchain/EffectSamp); % Exit when G-R criterium less than this
 
+% Assign initial values for model x
+x=x0;
+
 
 % Index for data covariance term (change if multiple types of data)
 % Can use more complex model for day - correlated or time variable.
@@ -151,41 +154,40 @@ ExitCrit = sqrt(1+Mchain/EffectSamp); % Exit when G-R criterium less than this
 % data covariance vector
 %Dsig = x.sig(sig_ind);
 
-% Assign initial values for model x
-x=x0;
 
 
-%% Forward model data from initial model
 
-% Forward model baseline measurements
-for mm=1:d0.Nfar%+1  % Iterate over Faradays
-    d(d0.blflag & d0.det_ind(:,mm),1) = x0.BL(mm); % Faraday Baseline
-    dnobl(d0.blflag & d0.det_ind(:,mm),1) = 0; % Data with No Baseline
-end
+% %% Forward model data from initial model
 
-% Forward model isotope measurements
-for n = 1:d0.Nblock  % Iterate over blocks
-    
-    % Calculate block intensity from intensity variables
-    Intensity{n} = InterpMat{n}*x0.I{n};  
-    Intensity2{n} = Intensity{n};
-    
-    %Iterate over Isotopes
-    for mm=1:d0.Niso;
-        % Calculate Daly data
-        itmp = d0.iso_ind(:,mm) & d0.axflag & d0.block(:,n); % If isotope and axial and block number
-        d(itmp) = exp(x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
-        %d(itmp) = (x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));    %debug
-        dnobl(itmp) = d(itmp);
-        
-        % Calculate Faraday datas
-        itmp = d0.iso_ind(:,mm) & ~d0.axflag & d0.block(:,n);
-        dnobl(itmp) = exp(x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline
-        %dnobl(itmp) = (x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline % debug
-        d(itmp) = dnobl(itmp) + x0.BL(d0.det_vec(itmp)); % Add baseline
-        
-    end
-end
+% % Forward model baseline measurements
+% for mm=1:d0.Nfar%+1  % Iterate over Faradays
+%     d(d0.blflag & d0.det_ind(:,mm),1) = x0.BL(mm); % Faraday Baseline
+%     dnobl(d0.blflag & d0.det_ind(:,mm),1) = 0; % Data with No Baseline
+% end
+% 
+% % Forward model isotope measurements
+% for n = 1:d0.Nblock  % Iterate over blocks
+%     
+%     % Calculate block intensity from intensity variables
+%     Intensity{n} = InterpMat{n}*x0.I{n};  
+%     Intensity2{n} = Intensity{n};
+%     
+%     %Iterate over Isotopes
+%     for mm=1:d0.Niso;
+%         % Calculate Daly data
+%         itmp = d0.iso_ind(:,mm) & d0.axflag & d0.block(:,n); % If isotope and axial and block number
+%         d(itmp) = exp(x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));
+%         %d(itmp) = (x0.lograt(mm))*Intensity{n}(d0.time_ind(itmp));    %debug
+%         dnobl(itmp) = d(itmp);
+%         
+%         % Calculate Faraday datas
+%         itmp = d0.iso_ind(:,mm) & ~d0.axflag & d0.block(:,n);
+%         dnobl(itmp) = exp(x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline
+%         %dnobl(itmp) = (x0.lograt(mm))*x0.DFgain^-1 *Intensity{n}(d0.time_ind(itmp)); % Data w/o baseline % debug
+%         d(itmp) = dnobl(itmp) + x0.BL(d0.det_vec(itmp)); % Add baseline
+%         
+%     end
+% end
 
 % New data covariance vector
 %Dsig = sqrt(x0.sig(d0.det_vec).^2 + x0.sig(d0.iso_vec+d0.Ndet).*dnobl); 
@@ -293,7 +295,8 @@ for m = 1:maxcnt*datsav
     
     
     % New data covariance vector
-    Dsig2 = x2.sig(d0.det_vec).^2 + x2.sig(d0.iso_vec+d0.Ndet).*dnobl2;
+    %Dsig2 = x2.sig(d0.det_vec).^2 + x2.sig(d0.iso_vec+d0.Ndet).*dnobl2;
+    Dsig2 = Dsig;
     
     % Calculate residuals for current and new model
     restmp = (d0.data-d).^2;
@@ -348,22 +351,16 @@ for m = 1:maxcnt*datsav
         
         cnt=cnt+1; % Increment counter
         
-        ensemble(cnt).lograt=log(x.lograt); % Log ratios
+        ensemble(cnt).lograt=x.lograt; % Log ratios
         for mm=1:d0.Nblock
             ensemble(cnt).I{mm}=x.I{mm}; % Intensity by block
         end
         ensemble(cnt).BL=x.BL;  % Baselines
         ensemble(cnt).DFgain=x.DFgain;  %Daly-Faraday gain
-        ensemble(cnt).sig=x.sig;  % Noise hyperparameter
+        ensemble(cnt).sig= 1; %x.sig;  % Noise hyperparameter (Calc at beginning now)
         ensemble(cnt).E=E;  % Misfit
         ensemble(cnt).E0=E0; % Unweighted misfit
         
-        covstart = 0;  % After this many iterations, begin calculating covariance iteratively
-        if cnt>=covstart+1
-            % Iterative covariance
-            %[xmean,xcov] = UpdateMeanCovMS(x,xmean,xcov,m);
-            
-        end
              
         % Display update info to screen 
         if  mod(m,10*datsav)==0
