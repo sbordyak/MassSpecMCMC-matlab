@@ -20,7 +20,7 @@ else
     display(sprintf('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'));
     %display(sprintf('Processor %d, %d models accepted out of %d',iproc,countr,m));
     display(sprintf('Elapsed time = %0.2f Seconds for %d realizations (%d total)',toc,10*datsav,m));
-    display(sprintf('Error function = %.0f',sqrt(E0/Ndata)));
+    display(sprintf('Error function = %.0f',sqrt(E0/d0.Ndata)));
     display(sprintf('Change all variables:   %d of %d accepted (%.1f%% total)',sum(kept(1:4,1:2)),100*sum(kept(1:4,3))/sum(kept(1:4,4))));
     
     if hier==1;

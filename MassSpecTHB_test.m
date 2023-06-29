@@ -6,8 +6,8 @@ addpath(genpath('./matcodes'))
 
 %% Define input dataset and collector parameters
 
-runname = 'test_prop';
-%runname = 'RealData22';
+%runname = 'test_prop';
+runname = 'RealData22';
 
 if strcmp(runname,'test_prop')
     iset = 1; % Dataset index number
@@ -21,7 +21,7 @@ if strcmp(runname,'test_prop')
         0 0 0 0 1    0 0 0 0 ];
     
 elseif strcmp(runname,'RealData22')
-    iset = 11; % Dataset index number
+    iset = 12; % Dataset index number
     Isotopes = [204 205 206 207 208]';
     Iso_Name = {'Pb204','Pb205','Pb206','Pb207','Pb208'};
     
@@ -54,26 +54,16 @@ datamat  = sprintf( '%s/data/SyntheticDataset_%02d.mat',foldername,iset);
 
 d0 = LoadMSdata_synth(datafile,Isotopes,F_ind);
 
+
 % Matrix to project spline knots for intensity function to time samples
 InterpMat = d0.InterpMat; 
 
-
-%% CREATE INITIAL MODEL AND MODEL DATA
-%[x0,d,Intensity] = InitializeModel_synth(d0);
-
-user_DFGain = 0.9;
-[x0,C0,d] = InitializeModelCov_synth(d0,user_DFGain);
-
-%x0.lograt = exp(x0.lograt); %debug
-%x0.sig = [4000;4000;0;11;11];
-
-Dsig = x0.Dsig;
+%d0.data(d0.iso_ind(:,3) & d0.cycle==1) = .5*d0.data(d0.iso_ind(:,3) & d0.cycle==1);
 
 
 
-%% INVERSION WITH rj-MCMC
+%% Set Up Adaptive MCMC INVERSION
 % Hardcoded here, presumably set by user in file or GUI?
-
 
 % MCMC Parameters
 maxcnt = 10000;  % Maximum number of models to save
@@ -82,28 +72,27 @@ datsav = 10;  % Save model every this many steps
 
 burn = 1;  % Burn-in, start doing stats after this many saved models
 
+% Create tempering vector - start high, cool down to 1 then stay there
 temp=1; % Use tempering?
 Ntemp = 10000; % Cool search over this number of steps
-% Create tempering vector - start high, cool down to 1 then stay there
-%TT = ones(maxcnt*datsav,1);TT(1:Ntemp) = linspace(5,1,Ntemp)';
 TT = ones(maxcnt*datsav,1);TT(1:Ntemp) = linspace(1,1,Ntemp)';
-
 
 % Baseline multiplier - weight Daly more strongly (I think)
 blmult = ones(size(d0.data));
 blmult(d0.axflag)=0.1;
 
+%sb629 Commented out unused variables
+%Ndata=d0.Ndata; % Number of picks
+%Nsig = d0.Nsig; % Number of noise variables
 
-Ndata=d0.Ndata; % Number of picks
-Nsig = d0.Nsig; % Number of noise variables
 
-
-% Range for ratios and intensity parameters
-prior.BL = [-1 1]*1e6;  % Faraday baseline
+% Range for ratios and intensity parameters 
+%sb629  Changed priors to infinite where appropropriate 
+prior.BL = [-inf inf];  % Faraday baseline
 prior.BLdaly = [0 0];   % Daly baseline (no baseline uncertainty)
 prior.lograt = [-20 20]; % Log ratio
-prior.I = [0 1.5*max([x0.I{:}])];  % Intensity
-prior.DFgain = [0.8 1.0];  % Daly-Faraday gain
+prior.I = [0 inf];  % Intensity
+prior.DFgain = [0 inf];  % Daly-Faraday gain
 
 prior.sig = [0 1e6];  % Noise hyperparameter for Faraday
 prior.sigdaly = [0 0]; % Gaussian noise on Daly
@@ -123,16 +112,38 @@ prior.sigpois = [0 10]; % Poisson noise on Daly
 % psig.sigpois = 0.5; % Poisson noise on Daly
 % psig.sigdaly = 0;  % Gaussian noise on Daly
 
-psig = [];
-
-Ndf = 1; % Number of DF gains = 1
-
-% Size of model: # isotopes + # intensity knots + # baselines + # df gain
-Nmod = d0.Niso + sum(d0.Ncycle) + d0.Nfar + Ndf ;
-
-% % Initial covariance taken from Proposal Sigmas
+% % Initial covariance taken from Proposal Sigmas (moved inside
+% model initialization function
 % C0diag =  [psig.lograt*ones(d0.Niso,1);psig.I*ones(sum(d0.Ncycle),1);psig.BL*ones(d0.Nfar,1);psig.DFgain*ones(1,1)];
 % C0 = (0.1)^2*Nmod^-1*diag(C0diag);
+
+psig = []; %
+
+
+
+
+
+
+%% CREATE INITIAL MODEL AND MODEL DATA
+%[x0,d,Intensity] = InitializeModel_synth(d0);
+
+% Hardcoded variables for whatever I'm testing at the moment
+d0.ReportInterval = 1;
+user_DFGain = 0.9;
+
+[x0,C0,d] = InitializeModelCov_synth(d0,user_DFGain);
+
+Nmod = size(C0,1);  %sb629 Slightly shorter way to define size of model.
+
+Dsig = x0.Dsig; % Using fixed noise variance values
+
+% New function to compute and plot ratios by cycle %sb629
+ViewCycleRatios(x0,d0,Iso_Name) 
+
+% Assign initial values for model x
+x=x0;
+
+%% Initialize Convergence Criteria Variables
 beta = 0.05;
 
 % Modified Gelman-Rubin Convergence 
@@ -142,10 +153,13 @@ EffectSamp = 2^(2/Nmod)*pi/(Nmod*gamma(Nmod/2))^(2/Nmod)*chi2inv(1-alpha,Nmod)/e
 Mchain = 1; % Number of Chains
 ExitCrit = sqrt(1+Mchain/EffectSamp); % Exit when G-R criterium less than this
 
-% Assign initial values for model x
-x=x0;
 
 
+
+
+
+
+%%
 % Index for data covariance term (change if multiple types of data)
 % Can use more complex model for day - correlated or time variable.
 % Not implemented here
@@ -230,15 +244,14 @@ delx_adapt=zeros(Nmod,datsav);
 %%
 d0.iso_vec(d0.iso_vec==0)=d0.Niso; %Set BL to denominator iso
 
-% Find beginning and end of each block for Faraday and Daly (ax)
-for ii=1:d0.Nblock
-    block0(ii,1) = find(d0.block(:,ii)&~d0.axflag,1,'first');
-    blockf(ii,1) = find(d0.block(:,ii)&~d0.axflag,1,'last');
-    blockax0(ii,1) = find(d0.block(:,ii)&d0.axflag,1,'first');
-    blockaxf(ii,1) = find(d0.block(:,ii)&d0.axflag,1,'last');
-end
-
-
+% % Find beginning and end of each block for Faraday and Daly (ax)
+% for ii=1:d0.Nblock
+%     block0(ii,1) = find(d0.block(:,ii)&~d0.axflag,1,'first');
+%     blockf(ii,1) = find(d0.block(:,ii)&~d0.axflag,1,'last');
+%     blockax0(ii,1) = find(d0.block(:,ii)&d0.axflag,1,'first');
+%     blockaxf(ii,1) = find(d0.block(:,ii)&d0.axflag,1,'last');
+% end
+% 
 
 
 %% MCMC Iterations

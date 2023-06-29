@@ -1,3 +1,4 @@
+
 %%
 
 figfolder = ['./results/' runname '/figs/'];
@@ -33,7 +34,7 @@ fs = 10;
 %     end
 % end
 
-    d = ModelMSData(x,d0);
+    d = ModelMSData(x0,d0);
 
 
 %Dsig = sqrt(x.sig(d0.det_vec).^2 + x.sig(d0.iso_vec+d0.Ndet).*dnobl); % New data covar vector

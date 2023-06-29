@@ -30,7 +30,8 @@ if 1
     Axial = d(:,12);
     
     Block = d(:,2);
-    Cycle = d(:,3);
+    Cycle = d(:,3);  
+    Cycle(1111:end) = Cycle(1111:end)+3; %sb629  JUST FOR ONE JANKY SYNTH DATA
     Faraday = d(:,[7:11 13:16]);
     
     %clear d dtmp
@@ -124,11 +125,14 @@ for m = 1:Nblock
         Time_Faraday{m,n} = Time_Far(k);
         Timeind_Faraday{m,n} = ftimeind(k)-iTknots0(m,1)+1;
         Detind_Faraday{m,n} = Detector_Far(k);
+        Cycle_Faraday{m,n} = Cycle_Far(k);  %sb629  Adding cycle to d0
+
         
         k = Ax_ind==n & Block==m;
         Data_Axial{m,n} = Axial(k);
         Time_Axial{m,n} = Time(k);
         Timeind_Axial{m,n} = find(k)-iTknots0(m,1)+1;
+        Cycle_Axial{m,n} = Cycle(k); %sb629  
     end
     
     
@@ -155,6 +159,7 @@ d0.det_vec = [];
 d0.time = [];
 d0.time_ind =[];
 d0.axflag = [];
+d0.cycle = [];
 dblocktmp = [];
 
 d0.Nfar = Nfar;
@@ -163,12 +168,12 @@ d0.Niso = Niso;
 d0.Nblock = Nblock;
 d0.Ndet = Ndet;
 d0.Nknots = Nknots;
-d0.Ncycle = Ncycle;
+d0.Ncycle = Ncycle; %sb629  
 d0.Ntb = Ntb;
 
 d0.InterpMat = InterpMat;
 
-
+d0.ReportInterval = 0.1; %sb629  This should be initialized based on header information
 
 % Add Faraday baseline data
 for n = 1:d0.Nfar
@@ -183,6 +188,7 @@ for n = 1:d0.Nfar
     d0.time = [d0.time; zeros(Ndata,1)];
     d0.time_ind =[d0.time_ind; zeros(Ndata,1)];
     d0.axflag = [d0.axflag; zeros(Ndata,1)];
+    d0.cycle = [d0.cycle; zeros(Ndata,1)]; %sb629  
     dblocktmp = [dblocktmp; zeros(Ndata,1)];
     
 end
@@ -224,6 +230,7 @@ for m = 1:Nblock
         d0.time = [d0.time; Time_Faraday{m,n}];
         d0.time_ind =[d0.time_ind; Timeind_Faraday{m,n}];
         d0.axflag = [d0.axflag; zeros(Ndata,1)];
+        d0.cycle = [d0.cycle; Cycle_Faraday{m,n}]; %sb629  
         dblocktmp = [dblocktmp; m*ones(Ndata,1)];
     end
 end
@@ -247,6 +254,7 @@ for m = 1:Nblock
         d0.time = [d0.time; Time_Axial{m,n}];
         d0.time_ind =[d0.time_ind; Timeind_Axial{m,n}];
         d0.axflag = [d0.axflag; ones(Ndata,1)];
+        d0.cycle = [d0.cycle; Cycle_Axial{m,n}]; %sb629  
         dblocktmp = [dblocktmp; m*ones(Ndata,1)];
     end
 end
