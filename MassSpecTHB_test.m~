@@ -58,7 +58,9 @@ d0 = LoadMSdata_synth(datafile,Isotopes,F_ind);
 % Matrix to project spline knots for intensity function to time samples
 InterpMat = d0.InterpMat; 
 
+%sb629 Spike test for cycle means visualization
 %d0.data(d0.iso_ind(:,3) & d0.cycle==1) = .5*d0.data(d0.iso_ind(:,3) & d0.cycle==1);
+
 
 
 
@@ -122,6 +124,31 @@ psig = []; %
 
 
 
+
+
+%% CREATE INITIAL MODEL AND MODEL DATA
+%[x0,d,Intensity] = InitializeModel_synth(d0);
+
+% Hardcoded variables for whatever I'm testing at the moment
+d0.ReportInterval = 1;
+user_DFGain = 0.9;
+
+% Hardcoded to test removing first cycle %sb726
+%d0.Include = ~(d0.cycle == 1 & d0.block == 1);
+%d0.IncludeMat{1} = ~(d0.CycleMat{1} == 1);
+
+[x0,C0,d] = InitializeModelCov_synth(d0,prior,user_DFGain);
+
+Nmod = size(C0,1);  %sb629 Slightly shorter way to define size of model.
+
+Dsig = x0.Dsig; % Using fixed noise variance values
+
+% New function to compute and plot ratios by cycle %sb629
+ViewCycleRatios(x0,d0,Iso_Name) 
+
+% Assign initial values for model x
+x=x0;
+
 %% Initialize Convergence Criteria Variables
 beta = 0.05;
 
@@ -135,31 +162,10 @@ ExitCrit = sqrt(1+Mchain/EffectSamp); % Exit when G-R criterium less than this
 
 
 
-%% CREATE INITIAL MODEL AND MODEL DATA
-%[x0,d,Intensity] = InitializeModel_synth(d0);
-
-% Hardcoded variables for whatever I'm testing at the moment
-d0.ReportInterval = 1;
-user_DFGain = 0.9;
-
-[x0,C0,d] = InitializeModelCov_synth(d0,user_DFGain);
-
-N
-
-Dsig = x0.Dsig;
-
-% New function to compute and plot ratios by cycle %sb629
-ViewCycleRatios(x0,d0,Iso_Name) 
-
-% Assign initial values for model x
-x=x0;
-
-return
 
 
 
-
-
+%%
 % Index for data covariance term (change if multiple types of data)
 % Can use more complex model for day - correlated or time variable.
 % Not implemented here
@@ -212,11 +218,11 @@ restmp2=zeros(size(Dsig));
 
 % Calculate data residuals from starting model
 restmp = (d0.data-d).^2;
-
+restmp_weight = restmp.*blmult./Dsig;
 
 % Calculate error function
-E=sum(restmp.*blmult./Dsig/TT(1));  % Weighted by noise variance (for acceptance)
-E0=sum(restmp);  % Unweighted (for tracking convergence)
+E=sum(restmp_weight(:)/TT(1));  % Weighted by noise variance (for acceptance)
+E0=sum(restmp(d0.Include));  % Unweighted (for tracking convergence)
 
 
 %     ensname = sprintf('%s/Ensemble_run%02d.mat',outfolder,iset);
@@ -244,15 +250,14 @@ delx_adapt=zeros(Nmod,datsav);
 %%
 d0.iso_vec(d0.iso_vec==0)=d0.Niso; %Set BL to denominator iso
 
-% Find beginning and end of each block for Faraday and Daly (ax)
-for ii=1:d0.Nblock
-    block0(ii,1) = find(d0.block(:,ii)&~d0.axflag,1,'first');
-    blockf(ii,1) = find(d0.block(:,ii)&~d0.axflag,1,'last');
-    blockax0(ii,1) = find(d0.block(:,ii)&d0.axflag,1,'first');
-    blockaxf(ii,1) = find(d0.block(:,ii)&d0.axflag,1,'last');
-end
-
-
+% % Find beginning and end of each block for Faraday and Daly (ax)
+% for ii=1:d0.Nblock
+%     block0(ii,1) = find(d0.block(:,ii)&~d0.axflag,1,'first');
+%     blockf(ii,1) = find(d0.block(:,ii)&~d0.axflag,1,'last');
+%     blockax0(ii,1) = find(d0.block(:,ii)&d0.axflag,1,'first');
+%     blockaxf(ii,1) = find(d0.block(:,ii)&d0.axflag,1,'last');
+% end
+% 
 
 
 %% MCMC Iterations
@@ -318,21 +323,26 @@ for m = 1:maxcnt*datsav
     restmp = (d0.data-d).^2;
     restmp2 = (d0.data-d2).^2;
 
+    restmp_weight = restmp.*blmult./Dsig;
+    restmp2_weight = restmp2.*blmult./Dsig2;
+
     
-    E02=sum(restmp2);  % Unweighted error func (for visualization)
+    E02=sum(restmp2(d0.Include));  % Unweighted error func (for visualization)
     
     
     if strcmp(oper,'noise')  
         % If noise operation
-        E=sum(restmp./Dsig);
-        E2=sum(restmp2./Dsig2);
+        E=sum(restmp_weight(:));
+        E2=sum(restmp2_weight(:));
         dE=E2-E; % Change in misfit
     else                     
         % If any other model update
-        E=sum(restmp.*blmult./Dsig/TT(m));
-        E2=sum(restmp2.*blmult./Dsig2/TT(m));
-        dE=temp^-1*(E2-E); % Change in misfit
+        E=sum(restmp_weight(:)/TT(m));
+        E2=sum(restmp2_weight(:)/TT(m));
+        dE=E2-E; % Change in misfit
     end
+    
+    
     
     %%
     % Decide whether to accept or reject model
@@ -379,7 +389,7 @@ for m = 1:maxcnt*datsav
         
              
         % Display update info to screen 
-        if  mod(m,10*datsav)==0
+        if  mod(m,100*datsav)==0
             DisplayInfo
             tic
             kept(:,1:2) = 0;
@@ -470,7 +480,7 @@ for m=1:d0.Nblock
 end
 
 
-%%
+
 % Calculate mean and st dev of ratios after burn in time
 ratmean = mean(ens_rat(:,burn:cnt),2);  % Log ratios
 ratstd = std(ens_rat(:,burn:cnt),[],2);
@@ -485,7 +495,7 @@ DFmean = mean(ens_DF(:,burn:cnt),2);   % Daly-Far gain
 DFstd = std(ens_DF(:,burn:cnt),[],2);
 
 
-%%
+
 
 
 

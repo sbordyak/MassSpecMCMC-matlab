@@ -1,6 +1,8 @@
 
 function ViewCycleRatios(x,d0,Iso_Name);
-%%
+% Function to compute mean and standard error for isotope ratios for each
+% cycle after correcting for Daly-Faraday gain, baselines, and varying 
+% intensity. To be used in workflow for user data rejection
 
 figure
 
@@ -29,20 +31,27 @@ for m=1:d0.Nblock % Loop over block
         
         for jj = 1:d0.Ncycle
             % Mean of ratio for each cycle
-            MeanCycleIso(jj,ii) = (mean((RawRatio(cyc==jj,ii)))); % 
+            %MeanCycleIso(jj,ii) = (mean((RawRatio(cyc==jj,ii)))); % 
+            
+            std_data = sqrt(mean(x.BLstd).^2+IntensityFn(cyc==jj));
+            
+            [mean_of_logs, std_of_logs] = MeanofLogs(dd(cyc==jj),IntensityFn(cyc==jj),std_data);
+            MeanCycleIso(jj,ii) = mean_of_logs;
+            StdCycleIso(jj,ii) = std_of_logs;
             
             % Standard deviation and standard error for each cycle
             Numcyc = sum(cyc==jj);
-            StdCycleIso(jj,ii) = (std((RawRatio(cyc==jj,ii))));
+            %StdCycleIso(jj,ii) = (std((RawRatio(cyc==jj,ii))));
             SterrCycleIso(jj,ii) = StdCycleIso(jj,ii)/sqrt(Numcyc);         
         end
     end
     
     for ii = 1:d0.Niso-1
-        % Ratio between isotopes and denominator isotopes
+        % Ratio between isotopes and denominator isotopes by cycle
         MeanCycleRatio(:,ii) = MeanCycleIso(:,ii)./MeanCycleIso(:,d0.Niso); 
         SterrCycleRatio(:,ii) = sqrt(SterrCycleIso(:,ii).^2+SterrCycleIso(:,d0.Niso).^2);
         
+        % Plot them up with error bars
         subplot(d0.Niso-1,d0.Nblock,m+d0.Nblock*(ii-1))
         
         errorbar(1:d0.Ncycle,MeanCycleRatio(:,ii),SterrCycleRatio(:,ii),'Marker','o')

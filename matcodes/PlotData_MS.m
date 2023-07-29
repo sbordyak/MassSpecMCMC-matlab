@@ -58,7 +58,7 @@ xx=1:length(d);
 
 H=figure(7);clf
 set(H,'color','w')
-set(H,'units','inches','position',[18 5 7.5 6.5])
+set(H,'units','inches','position',[6 5 7.5 6.5])
 set(H,'invertHardcopy','off')
 set(H,'units','inches','PaperSize', [7.5 6.5]);
 set(H,'PaperPositionMode','auto')

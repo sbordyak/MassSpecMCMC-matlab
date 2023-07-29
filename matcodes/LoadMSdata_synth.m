@@ -31,7 +31,10 @@ if 1
     
     Block = d(:,2);
     Cycle = d(:,3);  
-    Cycle(1111:end) = Cycle(1111:end)+3; %sb629  JUST FOR ONE JANKY SYNTH DATA
+    
+    if strcmp(datafile,'./results/RealData22/data/SyntheticDataset_12.txt')
+        Cycle(1111:end) = Cycle(1111:end)+3; %sb629  JUST FOR ONE JANKY SYNTH DATA
+    end
     Faraday = d(:,[7:11 13:16]);
     
     %clear d dtmp
@@ -114,6 +117,14 @@ for m=1:Nblock
     
     Nknots(m) = length(Tknots0(m,:));
     Ntb(m) = length(Block_Time{m});
+    
+    %sb726 Added this to include cycle number for InterpMat/time index
+    CycleMat{m} = zeros(Ntb,1);
+    for n = 1:Ncycle(m)-1
+        CycleMat{m}((iminCT(n):imaxCT(n))-iminCT(1)+1) = n;
+    end
+        
+    
 end
 
 ftimeind = repmat([1:Nsamptot]',1,Nfar);
@@ -161,6 +172,7 @@ d0.time_ind =[];
 d0.axflag = [];
 d0.cycle = [];
 dblocktmp = [];
+d0.Include = [];
 
 d0.Nfar = Nfar;
 d0.Nt = Nsamptot;
@@ -172,8 +184,13 @@ d0.Ncycle = Ncycle; %sb629
 d0.Ntb = Ntb;
 
 d0.InterpMat = InterpMat;
+d0.CycleMat = CycleMat;  %sb726
+for m = 1:Nblock
+    d0.IncludeMat{m} = ones(size(d0.CycleMat{m})); %sb726 Include that cycle?
+end
 
 d0.ReportInterval = 0.1; %sb629  This should be initialized based on header information
+d0.Isotopes = Isotopes; %sb630 Add isotope field so it can be used for Mass Bias later
 
 % Add Faraday baseline data
 for n = 1:d0.Nfar
@@ -190,7 +207,11 @@ for n = 1:d0.Nfar
     d0.axflag = [d0.axflag; zeros(Ndata,1)];
     d0.cycle = [d0.cycle; zeros(Ndata,1)]; %sb629  
     dblocktmp = [dblocktmp; zeros(Ndata,1)];
-    
+            
+    %sb726 Vector collects which entries to include in initialization
+    %and MCMC evalutation - to be updated by user data exclusion in
+    %Tripoli
+    d0.Include = [d0.Include; true(Ndata,1)];
 end
 
 
@@ -232,6 +253,8 @@ for m = 1:Nblock
         d0.axflag = [d0.axflag; zeros(Ndata,1)];
         d0.cycle = [d0.cycle; Cycle_Faraday{m,n}]; %sb629  
         dblocktmp = [dblocktmp; m*ones(Ndata,1)];
+                
+        d0.Include = [d0.Include; true(Ndata,1)]; 
     end
 end
 
@@ -256,6 +279,8 @@ for m = 1:Nblock
         d0.axflag = [d0.axflag; ones(Ndata,1)];
         d0.cycle = [d0.cycle; Cycle_Axial{m,n}]; %sb629  
         dblocktmp = [dblocktmp; m*ones(Ndata,1)];
+        
+        d0.Include = [d0.Include; true(Ndata,1)]; 
     end
 end
 
@@ -281,4 +306,8 @@ end
 
 d0.axflag = logical(d0.axflag);
 d0.blflag = logical(d0.blflag);
+d0.Include  = logical(d0.Include);
+for m = 1:Nblock
+d0.IncludeMat{m} = logical(d0.IncludeMat{m});
+end
 

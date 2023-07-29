@@ -94,7 +94,7 @@ if strcmp(oper(1:3),'cha')
     end
     x2.BL = xx(xind==(2+Nblock));
     x2.DFgain = xx(xind==(3+Nblock));
-    
+    x2.beta_massbias = x.beta_massbias;
 %    x2.sig = x.sig; % Calculated at beginning now
     
     

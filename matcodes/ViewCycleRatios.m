@@ -31,7 +31,16 @@ for m=1:d0.Nblock % Loop over block
         
         for jj = 1:d0.Ncycle
             % Mean of ratio for each cycle
-            MeanCycleIso(jj,ii) = (mean((RawRatio(cyc==jj,ii)))); % 
+            %MeanCycleIso(jj,ii) = (mean((RawRatio(cyc==jj,ii)))); % 
+            
+            %var_data = (mean(x.BLstd).^2+IntensityFn(cyc==jj));
+            var_data = mean(x.BLstd).^2;
+            
+            [mean_of_logs, std_of_logs] = MeanofLogs(dd(cyc==jj),IntensityFn(cyc==jj),var_data);
+            MeanCycleIso(jj,ii) = exp(mean_of_logs);
+            %StdCycleIso(jj,ii) = std_of_logs; % This isn't quite working %sb726
+            
+          
             
             % Standard deviation and standard error for each cycle
             Numcyc = sum(cyc==jj);

@@ -17,7 +17,7 @@ Ntb = d0.Ntb;
 
 H=figure(1);clf
 set(H,'color','w')
-set(H,'units','inches','position',[18 2 6 11])
+set(H,'units','inches','position',[6 2 6 11])
 set(H,'invertHardcopy','off')
 set(H,'units','inches','PaperSize', [6 11]);
 set(H,'PaperPositionMode','auto')

@@ -18,7 +18,7 @@ fs = 10;
 
 H=figure(2);clf
 set(H,'color','w')
-set(H,'units','inches','position',[18 5 4 2.5*(d0.Niso-1)])
+set(H,'units','inches','position',[6 5 4 2.5*(d0.Niso-1)])
 set(H,'invertHardcopy','off')
 set(H,'units','inches','PaperSize', [4 2.5*(d0.Niso-1)]);
 set(H,'PaperPositionMode','auto')
@@ -39,7 +39,7 @@ print(H,sprintf('%s/Converge_Ratio_run%02d.eps',figfolder,iset),'-depsc','-r200'
 
 H=figure(3);clf
 set(H,'color','w')
-set(H,'units','inches','position',[18 5 4 5])
+set(H,'units','inches','position',[6 5 4 5])
 set(H,'invertHardcopy','off')
 set(H,'units','inches','PaperSize', [4 5]);
 set(H,'PaperPositionMode','auto')
@@ -65,7 +65,7 @@ print(H,sprintf('%s/Converge_Error_run%02d.eps',figfolder,iset),'-depsc','-r200'
 
 H=figure(4);clf
 set(H,'color','w')
-set(H,'units','inches','position',[18 5 4 2.5*(d0.Nfar)])
+set(H,'units','inches','position',[6 5 4 2.5*(d0.Nfar)])
 set(H,'invertHardcopy','off')
 set(H,'units','inches','PaperSize', [4 2.5*(d0.Nfar)]);
 set(H,'PaperPositionMode','auto')
@@ -115,7 +115,7 @@ print(H,sprintf('%s/Converge_Baseline_run%02d.eps',figfolder,iset),'-depsc','-r2
 
 H=figure(6);clf
 set(H,'color','w')
-set(H,'units','inches','position',[18 5 4 2.5*(d0.Nblock)])
+set(H,'units','inches','position',[6 5 4 2.5*(d0.Nblock)])
 set(H,'invertHardcopy','off')
 set(H,'units','inches','PaperSize', [4 2.5*(d0.Nblock)]);
 set(H,'PaperPositionMode','auto')

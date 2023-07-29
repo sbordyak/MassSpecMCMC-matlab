@@ -1,4 +1,4 @@
-function [x0,C0,d] = InitializeModelCov_synth(d0,user_DFgain)
+function [x0,C0,d] = InitializeModelCov_synth(d0,prior,user_DFgain)
 
 
 
@@ -26,6 +26,7 @@ for m=1:d0.Nblock
     
     % Choose denominator iso for this block
     dind = (d0.iso_ind(:,iden) &   d0.block(:,m)); 
+    %dind = (d0.iso_ind(:,iden) &   d0.block(:,m) & d0.Include); %sb726
     dd=d0.data(dind); 
     tmpdetvec = d0.det_vec(dind);
     
@@ -90,8 +91,10 @@ end
 for m=1:d0.Nblock
     II = d0.InterpMat{m};
     IntensityFn = II*x0.I{m};
+    %IntensityFn = IntensityFn(d0.IncludeMat{m});  %sb726 include
     
     for ii = 1:d0.Niso-1
+       % dind = (d0.iso_ind(:,ii) &   d0.block(:,m) & d0.Include); %sb726 include
         dind = (d0.iso_ind(:,ii) &   d0.block(:,m));
         dd=d0.data(dind);
         tmpdetvec = d0.det_vec(dind);
@@ -104,12 +107,12 @@ for m=1:d0.Nblock
         dd=dd(dsort);
         
         IsoBlockMean(ii,m) = log(mean(dd./IntensityFn));
-
+        %IsoBlockMean(ii,m) = MeanofLogs(dd,IntensityFn,mean(x0.BLstd).^2);
     end
 end
 
 for ii=1:d0.Niso-1
-    x0.lograt(ii,1) = mean(IsoBlockMean(ii,:));
+    x0.lograt(ii,1) = max(mean(IsoBlockMean(ii,:)),(prior.lograt(1)));
 end
 
 
@@ -144,6 +147,10 @@ for m=1:d0.Nfar%+1
 end
 
 x0.Dsig = Dsig;
+
+
+%% Initialize Mass Bias
+x0.beta_massbias = 0; %sb630
 
 
 %%  Initialize Diagonal Model Covariance Matrix
@@ -206,7 +213,7 @@ x0.DFgainVar = max(sum(p.*(testDF-0).^2),minvarDF);%sb629
 
 
 for m = 1:d0.Nfar	
-    testBL = linspace(-x0.BLstd(m),x0.BLstd(m),1001);
+    testBL = linspace(-x0.BLstd(m),x0.BLstd(m),101);
     %sb629 
     delta_testBL = testBL(2)-testBL(1);
     minvarBL = (delta_testBL/2)^2;
@@ -222,6 +229,21 @@ for m = 1:d0.Nfar
     x0.BLVar(m) = max(sum(p.*(testBL-0).^2),minvarBL); %sb629 
     
 end
+
+%sb630  Test model variance for Mass Bias
+testMB = linspace(-.1,.1,101);
+delta_testMB = testMB(2)-testMB(1);
+minvarMB = (delta_testMB/2)^2;
+Etmp = zeros(size(testMB));
+for ii = 1:length(testMB)
+    testx0 = x0;
+    testx0.beta_massbias = x0.beta_massbias + testMB(ii);
+    d = ModelMSData(testx0,d0);
+    Etmp(ii) = sum((d0.data-d).^2./Dsig);
+end
+EE=(Etmp-min(Etmp));
+p = exp(-EE/2)/sum(exp(-EE/2)); 
+x0.betaVar = max(sum(p.*(testMB-0).^2),minvarMB);%sb630
 
 
 
