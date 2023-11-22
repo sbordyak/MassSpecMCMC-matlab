@@ -7,10 +7,11 @@ addpath(genpath('./matcodes'))
 %% Define input dataset and collector parameters
 
 %runname = 'test_prop';
-runname = 'RealData22';
+%runname = 'RealData22';
+runname = 'NBS981_230024b';
 
 if strcmp(runname,'test_prop')
-    iset = 1; % Dataset index number
+    iset = 9; % Dataset index number
     Isotopes = [206 208]';
     Iso_Name = {'Pb206','Pb208'};
     
@@ -29,10 +30,26 @@ elseif strcmp(runname,'RealData22')
     % This is based on the setup of the collectors, the piece of
     % information lacking in the typical data files.
     F_ind = [0 0 0 0 0    2 3 4 5;...
-         0 0 0 0 1    3 4 5 0;...
-         0 0 0 1 2    4 5 0 0;...
-         0 0 1 2 3    5 0 0 0;...
-         0 1 2 3 4    0 0 0 0];
+        0 0 0 0 1    3 4 5 0;...
+        0 0 0 1 2    4 5 0 0;...
+        0 0 1 2 3    5 0 0 0;...
+        0 1 2 3 4    0 0 0 0];
+    
+elseif strcmp(runname,'NBS981_230024b')
+    iset = 1; % Dataset index number
+    Isotopes = [204 205 206 207 208]';
+    Iso_Name = {'Pb204','Pb205','Pb206','Pb207','Pb208'};
+    
+    % Faraday Index (row # corresponds to isotope measured on Daly
+    % This is based on the setup of the collectors, the piece of
+    % information lacking in the typical data files.
+    F_ind = [0 0 0 0 0    2 3 4 5;...
+         0 0 0 0 0    3 4 5 0;...
+         0 0 0 0 0   4 5 0 0;...
+         0 0 0 0 0   5 0 0 0;...
+         0 0 0 0 0   0 0 0 0];
+    
+    
 end
 
 
@@ -54,6 +71,9 @@ datamat  = sprintf( '%s/data/SyntheticDataset_%02d.mat',foldername,iset);
 
 d0 = LoadMSdata_synth(datafile,Isotopes,F_ind);
 
+if strcmp(runname,'NBS981_230024b')
+    d0.data(~d0.axflag) = d0.data(~d0.axflag)*6.2400e+7;
+end
 
 % Matrix to project spline knots for intensity function to time samples
 InterpMat = d0.InterpMat; 
@@ -130,7 +150,7 @@ psig = []; %
 %[x0,d,Intensity] = InitializeModel_synth(d0);
 
 % Hardcoded variables for whatever I'm testing at the moment
-d0.ReportInterval = 1;
+d0.ReportInterval = 0.1;
 user_DFGain = 0.9;
 
 % Hardcoded to test removing first cycle %sb726
@@ -144,11 +164,14 @@ Nmod = size(C0,1);  %sb629 Slightly shorter way to define size of model.
 Dsig = x0.Dsig; % Using fixed noise variance values
 
 % New function to compute and plot ratios by cycle %sb629
-%ViewCycleRatios(x0,d0,Iso_Name) 
+ViewCycleRatios(x0,d0,Iso_Name) 
 
 % Assign initial values for model x
 x=x0;
 
+PlotData_MS
+
+return
 %% Initialize Convergence Criteria Variables
 beta = 0.05;
 

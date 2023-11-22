@@ -1,7 +1,7 @@
 % Test correlation between model parameters that might be causing difficulty 
 % In MCMC algorithm.
 
-for kk = 1:100
+for kk = 1:20
     
 p1 = 1000; % Amount of Isotope 1
 p2 = 1; % Amount of Isotope 2
@@ -18,9 +18,11 @@ d2 = p2 + s2*randn(N,1);
 % MCMC iterations
 M = 100000;
 
+NME = 1;  % Noise misestimate
+
 % Proposal distributions
-proplograt = 0.002;
-prop1 = p1/400;
+proplograt = NME*0.002;
+prop1 = NME*p1/400;
 propnoise = 0.001;
 
 % Allocate parameters vectors
@@ -31,7 +33,7 @@ xnoise =  zeros(M,2);
 % Set equal to correct values to start
 x1(1) = p1;% + randn*prop1;
 xlograt(1) = log(p2/p1);% + randn*proplograt;
-xnoise(1,:) = log([s1 s2]);
+xnoise(1,:) = log(NME*[s1 s2]);
 
 kept=0;
 

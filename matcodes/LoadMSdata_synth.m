@@ -54,7 +54,7 @@ Faraday = Faraday(:,FarsUsed);
 Nfar = size(Faraday,2);
 Ndet = Nfar + 1;
 Nsamptot = length(Axial);
-Nblock = max(1,length(unique(Block))-1);
+Nblock = 5; %max(1,length(unique(Block))-1);
 %Nblock = 1; %length(unique(Block))-1;
 for mm=1:Nblock
     Ncycle(mm) = length(unique(Cycle(Block==mm)));
@@ -117,9 +117,9 @@ for m=1:Nblock
     
     Nknots(m) = length(Tknots0(m,:));
     Ntb(m) = length(Block_Time{m});
-    
+
     %sb726 Added this to include cycle number for InterpMat/time index
-    CycleMat{m} = zeros(Ntb,1);
+    CycleMat{m} = zeros(Ntb(m),1);
     for n = 1:Ncycle(m)-1
         CycleMat{m}((iminCT(n):imaxCT(n))-iminCT(1)+1) = n;
     end

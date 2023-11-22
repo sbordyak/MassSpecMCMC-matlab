@@ -3,7 +3,7 @@ function [mean_of_logs, std_of_logs] = MeanofLogs(a,b,s2);
 
 d = [a; b];
 
-m0guess = 2*log(mean(a./b)); % For initial guess, log of means
+m0guess = real(2*log(mean(a./b))); % For initial guess, log of means
 
 m0 = [m0guess; 1]; % [log(a/b); log(b)]
 % a = exp( log(a/b) + log(b) )

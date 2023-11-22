@@ -102,11 +102,11 @@ for m=1:d0.Nblock
         dd(~d0.axflag(dind)) = (dd(~d0.axflag(dind)) - x0.BL(tmpdetvec(~d0.axflag(dind))))*x0.DFgain ;
         
         tmptime = d0.time_ind(dind);
-        [~,dsort]=sort(tmptime);
+        [tsort,dsort]=sort(tmptime);
         
         dd=dd(dsort);
         
-        IsoBlockMean(ii,m) = log(mean(dd./IntensityFn));
+        IsoBlockMean(ii,m) = log(mean(dd./IntensityFn(tsort)));
         %IsoBlockMean(ii,m) = MeanofLogs(dd,IntensityFn,mean(x0.BLstd).^2);
     end
 end
@@ -156,7 +156,7 @@ x0.beta_massbias = 0; %sb630
 %%  Initialize Diagonal Model Covariance Matrix
 
 for m = 1:d0.Niso-1
-    testLR = linspace(-.5,.5,1001);
+    testLR = linspace(-.5,.5,101);
     %sb629 
     delta_testLR = testLR(2)-testLR(1);
     minvarLR = (delta_testLR/2)^2;
@@ -195,7 +195,7 @@ end
 
 
 
-testDF = linspace(-.1,.1,1001);
+testDF = linspace(-.1,.1,101);
 %sb629
 delta_testDF = testDF(2)-testDF(1);
 minvarDF = (delta_testDF/2)^2;
